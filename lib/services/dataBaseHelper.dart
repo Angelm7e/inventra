@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 class DatabaseHelper {
   static final _productTable = "products";
+  static final _databaseName = "iventra.db";
   DatabaseHelper._privateConstructor();
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
 
@@ -16,7 +17,7 @@ class DatabaseHelper {
 
   Future<Database> _initDatabase() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = join(documentsDirectory.path, 'iventra.db');
+    String path = join(documentsDirectory.path, _databaseName);
     return await openDatabase(path, version: 1, onCreate: _onCreate);
   }
 
@@ -35,7 +36,8 @@ class DatabaseHelper {
     quantity INTEGER,
     price INTEGER,
     category TEXT,
-    description TEXT
+    description TEXT,
+    image TEXT 
 )
 ''');
   }
@@ -89,7 +91,7 @@ class DatabaseHelper {
   // TODO: eliminar este método o protegerlo con una confirmación, para evitar borrados accidentales
   Future<void> resetDatabase() async {
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'product.db');
+    final path = join(dbPath, _databaseName);
 
     await deleteDatabase(path);
 

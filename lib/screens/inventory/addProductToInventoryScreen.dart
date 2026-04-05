@@ -221,6 +221,7 @@ class _AddProductToInventoryScreenState
         price: int.tryParse(productPriceController.text) ?? 0,
         category: selectedCategory,
         description: productDescriptionController.text,
+        image: null,
       ),
     );
     if (response == -1) {
@@ -305,10 +306,8 @@ class _AddProductToInventoryScreenState
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.popAndPushNamed(
-                  context,
-                  InventoryListScreen.routeName,
-                );
+                Navigator.pop(context);
+                Navigator.pop(context);
               },
               child: Text("Aceptar"),
             ),

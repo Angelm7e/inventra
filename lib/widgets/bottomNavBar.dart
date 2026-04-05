@@ -29,13 +29,35 @@ class CustomBottomNavBar extends StatelessWidget {
               Navigator.pushNamed(context, HomeScreen.routeName);
             },
           ),
+
+          // if (_quoteItems.isNotEmpty)
+          //   Positioned(
+          //     right: -6,
+          //     top: -4,
+          //     child: Container(
+          //       padding: const EdgeInsets.all(4),
+          //       decoration: const BoxDecoration(
+          //         color: AppColors.primary,
+          //         shape: BoxShape.circle,
+          //       ),
+          //       constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+          //       child: Text(
+          //         '${_quoteItems.fold<int>(0, (s, e) => s + e.quantity)}',
+          //         style: const TextStyle(
+          //           color: Colors.white,
+          //           fontSize: 10,
+          //           fontWeight: FontWeight.bold,
+          //         ),
+          //       ),
+          //     ),
+          //   ),
           _buildNavItem(
             context,
             icon: Icons.receipt_long,
             label: "Facturar",
             isActive: currentIndex == 1,
             onTap: () {
-              Navigator.pushNamed(context, QuotesCreen.routeName);
+              Navigator.pushNamed(context, QuoteScreen.routeName);
             },
           ),
           // const SizedBox(width: 48),

@@ -6,6 +6,7 @@ class Product {
   final String category;
   final String?
   description; //TODO: make it non nullable when description is added to the add product screen
+  final String? image;
 
   Product({
     this.id,
@@ -14,6 +15,7 @@ class Product {
     required this.price,
     required this.category,
     this.description,
+    this.image,
   });
 
   factory Product.fromMap(Map<String, dynamic> json) => Product(
@@ -23,6 +25,7 @@ class Product {
     price: json['price'],
     category: json['category'],
     description: json['description'],
+    image: json['image'],
   );
 
   Map<String, dynamic> toMap() => {
@@ -32,5 +35,6 @@ class Product {
     'price': price,
     'category': category,
     'description': description,
+    'image': image,
   };
 }

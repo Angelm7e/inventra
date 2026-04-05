@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:inventra/screens/settingScreen/category/addCategoryScreen.dart';
 import 'package:inventra/screens/settingScreen/printers/addPrinterScreen.dart';
 
 class PrintersScreen extends StatefulWidget {

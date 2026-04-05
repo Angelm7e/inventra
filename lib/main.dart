@@ -36,6 +36,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider<CategoryProvider>(
           create: (context) => CategoryProvider(CategoryService()),
         ),
+        ChangeNotifierProvider<CategoryProvider>(
+          create: (context) => CategoryProvider(CategoryService()),
+        ),
         // ChangeNotifierProvider<AuthProvider>(
         //   create: (context) => AuthProvider(AuthService()),
         // ),
