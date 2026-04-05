@@ -7,7 +7,7 @@ class CustomSettingsButtom extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.onTap,
-    this.color = AppColors.darkPrimary,
+    this.color = AppColors.lightPrimary,
   });
 
   final IconData icon;

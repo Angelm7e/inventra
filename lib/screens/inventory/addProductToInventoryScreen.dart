@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:inventra/models/category.dart';
 import 'package:inventra/models/product.model.dart';
+import 'package:inventra/provider/categoryProvider.dart';
+import 'package:inventra/provider/productProvider.dart';
 import 'package:inventra/screens/inventory/inventoryListScreen.dart';
+import 'package:inventra/screens/settingScreen/category/categoryScreen.dart';
 import 'package:inventra/services/dataBaseHelper.dart';
+import 'package:inventra/utils/colors.dart';
 import 'package:inventra/widgets/bottomNavBar.dart';
 import 'package:inventra/widgets/dropDonw.widget.dart';
 import 'package:inventra/widgets/texField.widget.dart';
+import 'package:provider/provider.dart';
 
 class AddProductToInventoryScreen extends StatefulWidget {
   const AddProductToInventoryScreen({super.key});
@@ -26,7 +32,62 @@ class _AddProductToInventoryScreenState
   final TextEditingController productDescriptionController =
       TextEditingController();
 
-  String selectedCategory = 'Category 1';
+  ProductProvider get productProvider =>
+      Provider.of<ProductProvider>(context, listen: false);
+  CategoryProvider get categoryProvider =>
+      Provider.of<CategoryProvider>(context, listen: false);
+
+  String selectedCategory = 'Cargando...';
+  bool isLoading = true;
+  List<Category> categories = [];
+
+  @override
+  void initState() {
+    super.initState();
+    loadCategories();
+  }
+
+  void loadCategories() async {
+    try {
+      isLoading = true;
+
+      categories = await categoryProvider.loadCategories();
+      isLoading = false;
+      if (categories.isNotEmpty) {
+        setState(() {
+          selectedCategory = categories.first.name;
+        });
+      }
+      if (categories.isEmpty) {
+        selectedCategory = 'Sin categorías';
+        _onCategoryEmpty();
+      }
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al cargar las categorías.'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppColors.lightError,
+          ),
+        );
+      });
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
+  dispose() {
+    productNameController.dispose();
+    productQuantityController.dispose();
+    productPriceController.dispose();
+    productDescriptionController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -63,7 +124,7 @@ class _AddProductToInventoryScreenState
                         keyboardType: TextInputType.number,
                       ),
                       InvDropDownWidget(
-                        items: ['Category 1', 'Category 2', 'Category 3'],
+                        items: categories.map((e) => e.name).toList(),
                         selectedItem: selectedCategory,
                         onChanged: (value) {
                           setState(() {
@@ -108,16 +169,52 @@ class _AddProductToInventoryScreenState
             ),
           ],
         ),
-        bottomNavigationBar: CustomBottomNavBar(
-          currentIndex: 2,
-          // onTabSelected: (index) {}, //TODO: will probably need to change this to navigate to the correct screen
-        ),
+        bottomNavigationBar: CustomBottomNavBar(currentIndex: 2),
       ),
     );
   }
 
-  _onAddproduct() async {
-    final response = await DatabaseHelper.instance.add(
+  void _onCategoryEmpty() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("No hay categorías"),
+          content: Text(
+            "No se han encontrado categorías. Por favor, agregue al menos una categoría antes de agregar un producto.",
+          ),
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text("Aceptar", style: TextStyle(fontSize: 16)),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.popAndPushNamed(
+                      context,
+                      CategoryScreen.routeName,
+                    );
+                  },
+                  child: Text(
+                    "Agregar categoría",
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _onAddproduct() async {
+    final response = await productProvider.addProduct(
       Product(
         name: productNameController.text,
         quantity: int.tryParse(productQuantityController.text) ?? 0,
@@ -135,7 +232,7 @@ class _AddProductToInventoryScreenState
     }
   }
 
-  _onAlreadyExist() {
+  void _onAlreadyExist() {
     showDialog(
       context: context,
       builder: (context) {
@@ -177,7 +274,7 @@ class _AddProductToInventoryScreenState
     );
   }
 
-  _onSuccess() {
+  void _onSuccess() {
     showDialog(
       context: context,
       builder: (context) {
@@ -221,7 +318,7 @@ class _AddProductToInventoryScreenState
     );
   }
 
-  _onError() {
+  void _onError() {
     showDialog(
       context: context,
       builder: (context) {

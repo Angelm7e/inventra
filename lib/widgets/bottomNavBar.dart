@@ -1,20 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:inventra/screens/homeScreen/homeScreen.dart';
 import 'package:inventra/screens/inventory/inventoryListScreen.dart';
+import 'package:inventra/screens/quote/quoteScreen.dart';
 import 'package:inventra/screens/settingScreen/settingScreen.dart';
 import 'package:inventra/utils/colors.dart';
 
 class CustomBottomNavBar extends StatelessWidget {
   final int currentIndex;
-  // final Function(int) onTabSelected;
-  // final VoidCallback onFabPressed;
 
-  const CustomBottomNavBar({
-    super.key,
-    required this.currentIndex,
-    // required this.onTabSelected,
-    // required this.onFabPressed,
-  });
+  const CustomBottomNavBar({super.key, required this.currentIndex});
 
   @override
   Widget build(BuildContext context) {
@@ -22,10 +16,7 @@ class CustomBottomNavBar extends StatelessWidget {
     final bgColor = isDark ? Colors.grey[900] : Colors.white;
 
     return BottomAppBar(
-      // shape: const CircularNotchedRectangle(),
-      // notchMargin: 8.0,
       color: bgColor,
-      // elevation: 8,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
@@ -44,7 +35,7 @@ class CustomBottomNavBar extends StatelessWidget {
             label: "Facturar",
             isActive: currentIndex == 1,
             onTap: () {
-              // Navigator.pushNamed(context, NearByScreen.routeName);
+              Navigator.pushNamed(context, QuotesCreen.routeName);
             },
           ),
           // const SizedBox(width: 48),

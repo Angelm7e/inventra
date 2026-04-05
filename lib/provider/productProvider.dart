@@ -2,17 +2,18 @@ import 'package:flutter/foundation.dart';
 import 'package:inventra/contracts/productContract.dart';
 import 'package:inventra/models/product.model.dart';
 
-class Productprovider with ChangeNotifier {
+class ProductProvider with ChangeNotifier {
   final ProductContract productContract;
 
-  Productprovider(this.productContract);
+  ProductProvider(this.productContract);
 
   List<Product> _products = [];
   List<Product> get products => _products;
 
-  Future<void> loadProducts() async {
+  Future<List<Product>> loadProducts() async {
     _products = await productContract.getAllProducts();
     notifyListeners();
+    return _products;
   }
 
   Future<int> addProduct(Product product) async {

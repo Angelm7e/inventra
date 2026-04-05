@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:inventra/models/product.model.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -39,67 +38,6 @@ class DatabaseHelper {
     description TEXT
 )
 ''');
-  }
-
-  Future<List<Product>> getProduct() async {
-    Database db = await instance.database;
-    var products = await db.query(_productTable, orderBy: 'name');
-    List<Product> productList = products.isNotEmpty
-        ? products.map((c) => Product.fromMap(c)).toList()
-        : [];
-    return productList;
-  }
-
-  Future<int> add(Product product) async {
-    try {
-      Database db = await instance.database;
-
-      final existingProduct = await getProductByName(product.name);
-
-      if (existingProduct != null) {
-        return -2;
-      }
-
-      return await db.insert(
-        _productTable,
-        product.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.abort,
-      );
-    } catch (e) {
-      return -1; // Error general
-    }
-  }
-
-  Future<Product?> getProductByName(String name) async {
-    Database db = await instance.database;
-
-    var result = await db.query(
-      _productTable,
-      where: 'name = ?',
-      whereArgs: [name],
-      limit: 1,
-    );
-
-    if (result.isNotEmpty) {
-      return Product.fromMap(result.first);
-    }
-
-    return null;
-  }
-
-  Future<int> remove(int id) async {
-    Database db = await instance.database;
-    return await db.delete(_productTable, where: 'id = ?', whereArgs: [id]);
-  }
-
-  Future<int> update(Product product) async {
-    Database db = await instance.database;
-    return await db.update(
-      _productTable,
-      product.toMap(),
-      where: 'id = ?',
-      whereArgs: [product.id],
-    );
   }
 
   // Exportar a JSON

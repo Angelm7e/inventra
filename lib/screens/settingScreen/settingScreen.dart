@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:inventra/screens/settingScreen/bussinesInfo/editBussinesInfoScreen.dart';
+import 'package:inventra/screens/settingScreen/category/categoryScreen.dart';
+import 'package:inventra/screens/settingScreen/printers/printerScreen.dart';
+import 'package:inventra/utils/colors.dart';
 import 'package:inventra/widgets/bottomNavBar.dart';
 import 'package:inventra/widgets/customSettingsButtom.dart';
 
@@ -18,10 +22,15 @@ class SettingScreen extends StatelessWidget {
             // mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              CircleAvatar(
-                radius: 100,
-                backgroundColor: Colors.grey,
-                backgroundImage: AssetImage('assets/profilePicture.png'),
+              GestureDetector(
+                onTap: () {
+                  _onProfilePictureTapped(context);
+                },
+                child: CircleAvatar(
+                  radius: 100,
+                  backgroundColor: Colors.grey,
+                  backgroundImage: AssetImage('assets/profilePicture.png'),
+                ),
               ),
               buildPersonalInfo(base),
               SizedBox(height: base.height * 0.03),
@@ -32,7 +41,10 @@ class SettingScreen extends StatelessWidget {
                     CustomSettingsButtom(
                       label: "Editar informacion",
                       onTap: () {
-                        print("object");
+                        Navigator.pushNamed(
+                          context,
+                          EditBussinesInfoScreen.routeName,
+                        );
                       },
                       icon: Icons.edit,
                     ),
@@ -40,14 +52,19 @@ class SettingScreen extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       child: CustomSettingsButtom(
                         label: "Editar Categorias",
-                        onTap: () {},
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            CategoryScreen.routeName,
+                          );
+                        },
                         icon: Icons.category,
                       ),
                     ),
                     CustomSettingsButtom(
                       label: "Impresoras",
                       onTap: () {
-                        print("object");
+                        Navigator.pushNamed(context, PrintersScreen.routeName);
                       },
                       icon: Icons.print,
                     ),
@@ -103,6 +120,70 @@ class SettingScreen extends StatelessWidget {
           Text("123 Main St, Anytown, USA", style: TextStyle(fontSize: 16)),
         ],
       ),
+    );
+  }
+
+  _onProfilePictureTapped(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      // isDismissible: false,
+      builder: (context) {
+        final screenHeight = MediaQuery.of(context).size.height;
+
+        return Stack(
+          children: [
+            DraggableScrollableSheet(
+              initialChildSize: 0.27,
+              minChildSize: 0.27,
+              maxChildSize: 0.27,
+              builder: (context, scrollController) {
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                    border: Border.all(color: Colors.grey[300]!, width: 1),
+                  ),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 12),
+
+                      // Indicador draggable
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[400],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      Expanded(
+                        child: SingleChildScrollView(
+                          controller: scrollController,
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            spacing: 12,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              //
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 }
