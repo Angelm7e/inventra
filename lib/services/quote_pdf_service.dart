@@ -52,7 +52,7 @@ class QuotePdfService {
               pw.SizedBox(height: 20),
               _clientInfo(name),
               pw.SizedBox(height: 20),
-              pw.TableHelper.fromTextArray(
+              pw.Table.fromTextArray(
                 border: pw.TableBorder.all(
                   style: pw.BorderStyle.none,
                   width: 0,
