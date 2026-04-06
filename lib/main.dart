@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:inventra/provider/categoryProvider.dart';
 import 'package:inventra/provider/productProvider.dart';
+import 'package:inventra/provider/quoteProvider.dart';
 import 'package:inventra/routes/routes.dart';
 import 'package:inventra/screens/homeScreen/homeScreen.dart';
 import 'package:inventra/services/categoryService.dart';
@@ -38,6 +39,9 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider<CategoryProvider>(
           create: (context) => CategoryProvider(CategoryService()),
+        ),
+        ChangeNotifierProvider<QuoteProvider>(
+          create: (context) => QuoteProvider(),
         ),
         // ChangeNotifierProvider<AuthProvider>(
         //   create: (context) => AuthProvider(AuthService()),

@@ -24,12 +24,7 @@ final Map<String, WidgetBuilder> appRoutes = {
   PrintersScreen.routeName: (context) => const PrintersScreen(),
   AddPrintersScreen.routeName: (context) => const AddPrintersScreen(),
   CatalogScreen.routeName: (context) => const CatalogScreen(),
-  QuoteScreen.routeName: (context) => QuoteScreen(
-    items: [],
-    onUpdateQuantity: (item, quantity) {},
-    onRemove: (item) {},
-    onQuoteCleared: () {},
-  ),
+  QuoteScreen.routeName: (context) => const QuoteScreen(),
 
   // '/': (context) => const MyHomePage(title: 'Flutter Demo Home Page'),
 };

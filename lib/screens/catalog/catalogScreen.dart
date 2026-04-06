@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:inventra/models/product.model.dart';
+import 'package:inventra/provider/quoteProvider.dart';
 import 'package:inventra/screens/inventory/addProductToInventoryScreen.dart';
 import 'package:inventra/services/productService.dart';
 import 'package:inventra/utils/colors.dart';
 import 'package:inventra/utils/number_formatter.dart';
 import 'package:inventra/widgets/bottomNavBar.dart';
 import 'package:inventra/widgets/product_card.dart';
+import 'package:provider/provider.dart';
 
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({super.key});
@@ -114,7 +116,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
           ],
         ),
       ),
-      // bottomNavigationBar: CustomBottomNavBar(currentIndex: 6),
+      bottomNavigationBar: CustomBottomNavBar(currentIndex: 6),
     );
   }
 
@@ -128,11 +130,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
         children: [
           Text(
             'Catálogo de productos',
-            style: TextStyle(
-              color: Colors.grey[800],
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
           ),
           IconButton(
             onPressed: () {
@@ -261,7 +259,10 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   const SizedBox(height: 16),
                   FilledButton.icon(
                     onPressed: () {
-                      // widget.onAddToQuote(product, quantity: quantity);
+                      context.read<QuoteProvider>().addToQuote(
+                        product,
+                        quantity: quantity,
+                      );
                       Navigator.pop(context);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(

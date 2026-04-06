@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:inventra/models/quoteItem.dart';
+import 'package:inventra/provider/quoteProvider.dart';
 import 'package:inventra/screens/catalog/catalogScreen.dart';
 import 'package:inventra/services/quote_pdf_service.dart';
 import 'package:inventra/utils/colors.dart';
@@ -11,19 +12,10 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:cross_file/cross_file.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:provider/provider.dart';
 
 class QuoteScreen extends StatefulWidget {
-  final List<QuoteItem> items;
-  final void Function(QuoteItem item, int quantity) onUpdateQuantity;
-  final void Function(QuoteItem item) onRemove;
-  final VoidCallback onQuoteCleared;
-  const QuoteScreen({
-    super.key,
-    required this.items,
-    required this.onUpdateQuantity,
-    required this.onRemove,
-    required this.onQuoteCleared,
-  });
+  const QuoteScreen({super.key});
 
   static const routeName = '/quoteScreen';
 
@@ -45,17 +37,21 @@ class _QuoteScreenState extends State<QuoteScreen> {
     clientNameController = TextEditingController();
   }
 
-  double get _total => widget.items.fold<double>(0, (s, e) => s + e.subtotal);
+  double _totalFor(List<QuoteItem> items) =>
+      items.fold<double>(0, (s, e) => s + e.subtotal);
 
   @override
   Widget build(BuildContext context) {
+    final quote = context.watch<QuoteProvider>();
+    final items = quote.quoteItems;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: Container(),
         actions: [
-          if (widget.items.isNotEmpty)
+          if (items.isNotEmpty)
             IconButton(
               onPressed: () => _confirmClear(context),
               icon: const Icon(Icons.delete_outline_rounded),
@@ -76,16 +72,15 @@ class _QuoteScreenState extends State<QuoteScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (widget.items.isEmpty)
+            if (items.isEmpty)
               _buildEmpty(context)
             else
-              Expanded(child: _buildList(context)),
-            if (widget.items.isNotEmpty) _buildTotalAndActions(context),
+              Expanded(child: _buildList(context, quote)),
+            if (items.isNotEmpty) _buildTotalAndActions(context, quote),
           ],
         ),
       ),
       bottomNavigationBar: CustomBottomNavBar(currentIndex: 1),
-      // bottomNavigationBar: widget.items.isNotEmpty ? _buildTotalAndActions(context) : null,
     );
   }
 
@@ -132,23 +127,25 @@ class _QuoteScreenState extends State<QuoteScreen> {
     );
   }
 
-  Widget _buildList(BuildContext context) {
+  Widget _buildList(BuildContext context, QuoteProvider quote) {
+    final items = quote.quoteItems;
     return ListView.separated(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: widget.items.length,
+      itemCount: items.length,
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
-        final item = widget.items[index];
+        final item = items[index];
         return _QuoteItemCard(
           item: item,
-          onUpdateQuantity: (q) => widget.onUpdateQuantity(item, q),
-          onRemove: () => widget.onRemove(item),
+          onUpdateQuantity: (q) => quote.updateQuantity(item, q),
+          onRemove: () => quote.removeFromQuote(item),
         );
       },
     );
   }
 
-  Widget _buildTotalAndActions(BuildContext context) {
+  Widget _buildTotalAndActions(BuildContext context, QuoteProvider quote) {
+    final items = quote.quoteItems;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -176,7 +173,7 @@ class _QuoteScreenState extends State<QuoteScreen> {
                 ),
               ),
               Text(
-                NumberFormatter.currency(_total),
+                NumberFormatter.currency(_totalFor(items)),
                 style: const TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -189,10 +186,14 @@ class _QuoteScreenState extends State<QuoteScreen> {
           FilledButton.icon(
             onPressed: () => _showClientNameDialog(context),
             icon: const Icon(Icons.picture_as_pdf_rounded),
-            label: const Text('Generar PDF'),
+            label: const Text(
+              'Generar PDF',
+              style: TextStyle(color: Colors.white),
+            ),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.lightPrimary,
               padding: const EdgeInsets.symmetric(vertical: 16),
+              foregroundColor: Colors.white,
             ),
           ),
         ],
@@ -215,7 +216,7 @@ class _QuoteScreenState extends State<QuoteScreen> {
           ),
           FilledButton(
             onPressed: () {
-              widget.onQuoteCleared();
+              context.read<QuoteProvider>().clearQuote();
               Navigator.pop(context);
             },
             style: FilledButton.styleFrom(
@@ -344,8 +345,9 @@ class _QuoteScreenState extends State<QuoteScreen> {
                   ),
                   onPressed: () async {
                     try {
+                      final pdfItems = context.read<QuoteProvider>().quoteItems;
                       final bytes = await QuotePdfService.generateQuotePdfBytes(
-                        widget.items,
+                        pdfItems,
                         clientName: clientName,
                       );
                       await _savePdfToDownloads(bytes);
@@ -384,8 +386,9 @@ class _QuoteScreenState extends State<QuoteScreen> {
                   ),
                   onPressed: () async {
                     try {
+                      final pdfItems = context.read<QuoteProvider>().quoteItems;
                       final bytes = await QuotePdfService.generateQuotePdfBytes(
-                        widget.items,
+                        pdfItems,
                         clientName: clientName,
                       );
                       await _sharePdf(bytes);
@@ -485,10 +488,16 @@ class _QuoteItemCard extends StatelessWidget {
                         onPressed: item.quantity > 1
                             ? () => onUpdateQuantity(item.quantity - 1)
                             : null,
-                        icon: const Icon(Icons.remove, size: 18),
+                        icon: Icon(
+                          Icons.remove,
+                          size: 18,
+                          color: item.quantity > 1
+                              ? Colors.white
+                              : AppColors.lightPrimary,
+                        ),
                         style: IconButton.styleFrom(
                           backgroundColor: AppColors.lightPrimary,
-                          foregroundColor: AppColors.lightTextPrimary,
+                          foregroundColor: AppColors.lightBackground,
                           minimumSize: const Size(36, 36),
                         ),
                       ),
@@ -507,7 +516,7 @@ class _QuoteItemCard extends StatelessWidget {
                         icon: const Icon(Icons.add, size: 18),
                         style: IconButton.styleFrom(
                           backgroundColor: AppColors.lightPrimary,
-                          foregroundColor: AppColors.lightTextPrimary,
+                          foregroundColor: AppColors.lightBackground,
                           minimumSize: const Size(36, 36),
                         ),
                       ),
