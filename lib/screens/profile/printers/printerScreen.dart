@@ -1,71 +1,67 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:inventra/models/product.model.dart';
-import 'package:inventra/provider/productProvider.dart';
-import 'package:inventra/screens/inventory/addProductToInventoryScreen.dart';
+import 'package:inventra/models/printerDevice.dart';
+import 'package:inventra/provider/printerProvider.dart';
+import 'package:inventra/screens/profile/printers/addPrinterScreen.dart';
 import 'package:inventra/utils/colors.dart';
-import 'package:inventra/utils/number_formatter.dart';
 import 'package:inventra/widgets/bottomNavBar.dart';
 import 'package:provider/provider.dart';
 
-class InventoryListScreen extends StatefulWidget {
-  const InventoryListScreen({super.key});
+class PrintersScreen extends StatefulWidget {
+  const PrintersScreen({super.key});
 
-  static const String routeName = '/inventoryListScreen';
+  static const String routeName = '/printersScreen';
 
   @override
-  State<InventoryListScreen> createState() => _InventoryListScreenState();
+  State<PrintersScreen> createState() => _PrintersScreenState();
 }
 
-class _InventoryListScreenState extends State<InventoryListScreen> {
+class _PrintersScreenState extends State<PrintersScreen> {
   int _listRefreshKey = 0;
 
-  ProductProvider get _productProvider =>
-      Provider.of<ProductProvider>(context, listen: false);
+  PrinterProvider get _printerProvider =>
+      Provider.of<PrinterProvider>(context, listen: false);
 
   void _refreshList() {
     setState(() => _listRefreshKey++);
   }
 
-  Future<void> _openAddProduct() async {
+  Future<void> _openAddPrinter() async {
     await Navigator.push<void>(
       context,
-      MaterialPageRoute(builder: (_) => const AddProductToInventoryScreen()),
+      MaterialPageRoute(builder: (_) => const AddPrintersScreen()),
     );
-    if (mounted) {
-      await _productProvider.loadProducts();
-      _refreshList();
-    }
+    if (mounted) _refreshList();
   }
 
-  Future<void> _openEditProduct(Product product) async {
+  Future<void> _openEditPrinter(PrinterDevice printer) async {
     await Navigator.push<void>(
       context,
       MaterialPageRoute(
-        builder: (_) => AddProductToInventoryScreen(productToEdit: product),
+        builder: (_) => AddPrintersScreen(printerToEdit: printer),
       ),
     );
-    if (mounted) {
-      await _productProvider.loadProducts();
-      _refreshList();
-    }
+    if (mounted) _refreshList();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(leading: SizedBox(), title: const Text('Inventario')),
+      appBar: AppBar(title: const Text('Impresoras')),
       body: RefreshIndicator(
         onRefresh: () async {
           _refreshList();
-          await _productProvider.loadProducts();
+          await _printerProvider.loadPrinters();
         },
         child: Center(
-          child: FutureBuilder<List<Product>>(
+          child: FutureBuilder<List<PrinterDevice>>(
             key: ValueKey(_listRefreshKey),
-            future: _productProvider.loadProducts(),
+            future: _printerProvider.loadPrinters(),
             builder:
-                (BuildContext context, AsyncSnapshot<List<Product>> snapshot) {
+                (
+                  BuildContext context,
+                  AsyncSnapshot<List<PrinterDevice>> snapshot,
+                ) {
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
@@ -77,7 +73,7 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
                   return snapshot.data!.isEmpty
                       ? _buildEmpty(context)
                       : ListView(
-                          children: snapshot.data!.map((product) {
+                          children: snapshot.data!.map((printer) {
                             return Center(
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
@@ -91,7 +87,7 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
                                       CustomSlidableAction(
                                         padding: EdgeInsets.zero,
                                         onPressed: (context) =>
-                                            _onEdit(product),
+                                            _onEdit(printer),
                                         backgroundColor: AppColors.lightSuccess,
                                         borderRadius: BorderRadius.circular(10),
                                         child: Column(
@@ -120,7 +116,7 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
                                       CustomSlidableAction(
                                         padding: EdgeInsets.zero,
                                         onPressed: (context) =>
-                                            _onDelete(product),
+                                            _onDelete(printer),
                                         backgroundColor: AppColors.lightError,
                                         borderRadius: BorderRadius.circular(10),
                                         child: Column(
@@ -158,8 +154,8 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
                                       borderRadius: BorderRadius.circular(12),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.grey.withOpacity(0.10),
-                                          blurRadius: 6,
+                                          color: Colors.grey.withOpacity(0.12),
+                                          blurRadius: 8,
                                           offset: Offset(0, 2),
                                         ),
                                       ],
@@ -173,26 +169,24 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
                                               CrossAxisAlignment.center,
                                           children: [
                                             Icon(
-                                              Icons.inventory_2_outlined,
+                                              Icons.print,
                                               color: AppColors.lightSecondary,
                                               size: 22,
                                             ),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: Text(
-                                                product.name,
-                                                style: const TextStyle(
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                                overflow: TextOverflow.ellipsis,
+                                            SizedBox(width: 8),
+                                            Text(
+                                              printer.name,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 18,
                                               ),
                                             ),
+                                            Spacer(),
                                             Chip(
-                                              label: Text(product.category),
+                                              label: Text(printer.type),
                                               backgroundColor: AppColors
                                                   .lightSecondary
-                                                  .withOpacity(0.14),
+                                                  .withAlpha(30),
                                               labelStyle: TextStyle(
                                                 color: AppColors.lightSecondary,
                                                 fontWeight: FontWeight.w500,
@@ -200,58 +194,50 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
                                             ),
                                           ],
                                         ),
-                                        const SizedBox(height: 8),
+                                        SizedBox(height: 10),
                                         Row(
                                           children: [
+                                            Icon(
+                                              Icons.dns,
+                                              size: 18,
+                                              color: Colors.grey,
+                                            ),
+                                            SizedBox(width: 6),
                                             Text(
-                                              "Cantidad: ",
+                                              "Dirección IP: ",
                                               style: TextStyle(
                                                 fontWeight: FontWeight.w500,
                                                 fontSize: 15,
                                               ),
                                             ),
-                                            Text(
-                                              product.quantity.toString(),
-                                              style: product.quantity > 10
-                                                  ? const TextStyle(
-                                                      fontSize: 15,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    )
-                                                  : const TextStyle(
-                                                      fontSize: 15,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: Colors.red,
-                                                    ),
+                                            Expanded(
+                                              child: Text(
+                                                printer.address,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(fontSize: 15),
+                                              ),
                                             ),
                                           ],
                                         ),
+                                        SizedBox(height: 4),
                                         Row(
                                           children: [
+                                            Icon(
+                                              Icons.usb,
+                                              size: 18,
+                                              color: Colors.grey,
+                                            ),
+                                            SizedBox(width: 6),
                                             Text(
-                                              "Precio: ",
+                                              "Puerto: ",
                                               style: TextStyle(
                                                 fontWeight: FontWeight.w500,
                                                 fontSize: 15,
                                               ),
                                             ),
                                             Text(
-                                              NumberFormatter.currency(
-                                                product.price.toDouble(),
-                                              ),
-                                              style: product.quantity > 10
-                                                  ? const TextStyle(
-                                                      fontSize: 15,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    )
-                                                  : const TextStyle(
-                                                      fontSize: 15,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: Colors.red,
-                                                    ),
+                                              printer.port.toString(),
+                                              style: TextStyle(fontSize: 15),
                                             ),
                                           ],
                                         ),
@@ -268,23 +254,10 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _openAddProduct().catchError((_) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Error al agregar productos'),
-                backgroundColor: AppColors.lightError,
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          });
-        },
+        onPressed: _openAddPrinter,
         child: const Icon(Icons.add),
       ),
-      bottomNavigationBar: CustomBottomNavBar(
-        currentIndex: 2,
-        // onTabSelected: (index) {},
-      ),
+      bottomNavigationBar: CustomBottomNavBar(currentIndex: 3),
     );
   }
 
@@ -295,17 +268,17 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.inventory_rounded,
+            Icons.print_outlined,
             size: 80,
             color: AppColors.lightSecondary.withValues(alpha: 0.5),
           ),
           const SizedBox(height: 16),
           Text(
-            'No tienes productos en tu inventario',
+            'No tienes impresoras configuradas',
             style: TextStyle(fontSize: 18, color: AppColors.lightTextSecondary),
           ),
           Text(
-            'Agrega productos para imprimir tus tickets de venta',
+            'Agrega impresoras para imprimir tus tickets de venta',
             style: TextStyle(
               fontSize: 14,
               color: AppColors.lightTextSecondary.withValues(alpha: 0.8),
@@ -315,18 +288,8 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
             width: MediaQuery.of(context).size.width * 0.55,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(),
-              onPressed: () {
-                _openAddProduct().catchError((_) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error al agregar productos'),
-                      backgroundColor: AppColors.lightError,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                });
-              },
-              child: Text("Agregar productos"),
+              onPressed: _openAddPrinter,
+              child: Text("Agregar impresoras"),
             ),
           ),
         ],
@@ -334,25 +297,25 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
     );
   }
 
-  void _onEdit(Product product) {
-    _openEditProduct(product);
+  void _onEdit(PrinterDevice printer) {
+    _openEditPrinter(printer);
   }
 
-  _onDelete(Product product) {
+  void _onDelete(PrinterDevice printer) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Confirmar eliminación'),
           content: RichText(
             text: TextSpan(
               children: [
                 const TextSpan(
-                  text: '¿Estás seguro de que deseas eliminar el producto ',
+                  text: '¿Estás seguro de que deseas eliminar la impresora ',
                   style: TextStyle(color: Colors.black, fontSize: 16),
                 ),
                 TextSpan(
-                  text: product.name,
+                  text: printer.name,
                   style: const TextStyle(
                     color: Colors.red,
                     fontSize: 16,
@@ -366,21 +329,19 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
               ],
             ),
           ),
-
           actions: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
+                  onPressed: () => Navigator.of(dialogContext).pop(),
                   child: const Text('Cancelar', style: TextStyle(fontSize: 16)),
                 ),
                 TextButton(
                   onPressed: () async {
-                    await _productProvider.removeProduct(product.id!);
-                    if (context.mounted) Navigator.of(context).pop();
+                    await _printerProvider.removePrinter(printer.id);
+                    if (dialogContext.mounted)
+                      Navigator.of(dialogContext).pop();
                     if (mounted) _refreshList();
                   },
                   child: const Text(

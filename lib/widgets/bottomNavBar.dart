@@ -3,7 +3,7 @@ import 'package:inventra/provider/quoteProvider.dart';
 import 'package:inventra/screens/homeScreen/homeScreen.dart';
 import 'package:inventra/screens/inventory/inventoryListScreen.dart';
 import 'package:inventra/screens/quote/quoteScreen.dart';
-import 'package:inventra/screens/settingScreen/settingScreen.dart';
+import 'package:inventra/screens/profile/profileScreen.dart';
 import 'package:inventra/utils/colors.dart';
 import 'package:provider/provider.dart';
 
@@ -59,11 +59,11 @@ class CustomBottomNavBar extends StatelessWidget {
           ),
           _buildNavItem(
             context,
-            icon: Icons.settings,
-            label: "Configuracion",
+            icon: Icons.person,
+            label: "Perfil",
             isActive: currentIndex == 3,
             onTap: () {
-              Navigator.pushNamed(context, SettingScreen.routeName);
+              Navigator.pushNamed(context, ProfileScreen.routeName);
             },
           ),
         ],

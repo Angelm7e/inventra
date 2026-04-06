@@ -44,14 +44,22 @@ class ProductService implements ProductContract {
 
   @override
   Future<int> updateProduct(Product product) async {
-    final db = await dbHelper.database;
+    try {
+      final db = await dbHelper.database;
 
-    return await db.update(
-      table,
-      product.toMap(),
-      where: 'id = ?',
-      whereArgs: [product.id],
-    );
+      final existing = await getByName(product.name);
+      if (existing != null && existing.id != product.id) return -2;
+
+      final rows = await db.update(
+        table,
+        product.toMap(),
+        where: 'id = ?',
+        whereArgs: [product.id],
+      );
+      return rows > 0 ? rows : -1;
+    } catch (e) {
+      return -1;
+    }
   }
 
   Future<Product?> getByName(String name) async {

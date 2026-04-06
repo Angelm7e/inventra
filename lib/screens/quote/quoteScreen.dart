@@ -60,11 +60,7 @@ class _QuoteScreenState extends State<QuoteScreen> {
         ],
         title: const Text(
           'Mi Cotización',
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-            color: AppColors.lightTextPrimary,
-          ),
+          style: TextStyle(color: AppColors.lightTextPrimary),
         ),
       ),
 

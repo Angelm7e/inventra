@@ -1,11 +1,11 @@
 import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
 
-class PrinterService {
+class PrintingService {
   final String ip;
   final int port;
 
-  PrinterService({required this.ip, this.port = 9100});
+  PrintingService({required this.ip, this.port = 9100});
 
   Future<NetworkPrinter?> _connect() async {
     final profile = await CapabilityProfile.load();

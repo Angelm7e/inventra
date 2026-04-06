@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:inventra/screens/settingScreen/bussinesInfo/editBussinesInfoScreen.dart';
-import 'package:inventra/screens/settingScreen/category/categoryScreen.dart';
-import 'package:inventra/screens/settingScreen/printers/printerScreen.dart';
-import 'package:inventra/utils/colors.dart';
+import 'package:inventra/screens/profile/bussinesInfo/editBussinesInfoScreen.dart';
+import 'package:inventra/screens/profile/category/categoryScreen.dart';
+import 'package:inventra/screens/profile/printers/printerScreen.dart';
 import 'package:inventra/widgets/bottomNavBar.dart';
 import 'package:inventra/widgets/customSettingsButtom.dart';
 
-class SettingScreen extends StatelessWidget {
-  const SettingScreen({super.key});
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
 
-  static const String routeName = '/settingScreen';
+  static const String routeName = '/profileScreen';
 
   @override
   Widget build(BuildContext context) {

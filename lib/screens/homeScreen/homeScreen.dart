@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:inventra/screens/catalog/catalogScreen.dart';
-import 'package:inventra/services/printerService/printerService.dart';
+import 'package:inventra/services/printerService/printingService.dart';
 import 'package:inventra/widgets/bottomNavBar.dart';
+import 'package:inventra/widgets/drawer.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,7 +17,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(leading: SizedBox(), title: const Text('Home Screen')),
+      drawer: DrawerWidget(),
+      appBar: AppBar(title: const Text('Home Screen')),
       body: Column(
         children: [
           Text('Welcome to the Home Screen!'),
@@ -28,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           TextButton(
             onPressed: () {
-              PrinterService(ip: '10.0.0.67').printInvoice([
+              PrintingService(ip: '10.0.0.67').printInvoice([
                 {
                   'name': 'Product 1',
                   'quantity': 1,

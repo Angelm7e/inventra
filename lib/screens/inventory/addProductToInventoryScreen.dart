@@ -3,8 +3,7 @@ import 'package:inventra/models/category.dart';
 import 'package:inventra/models/product.model.dart';
 import 'package:inventra/provider/categoryProvider.dart';
 import 'package:inventra/provider/productProvider.dart';
-import 'package:inventra/screens/inventory/inventoryListScreen.dart';
-import 'package:inventra/screens/settingScreen/category/categoryScreen.dart';
+import 'package:inventra/screens/profile/category/categoryScreen.dart';
 import 'package:inventra/services/dataBaseHelper.dart';
 import 'package:inventra/utils/colors.dart';
 import 'package:inventra/widgets/bottomNavBar.dart';
@@ -13,9 +12,13 @@ import 'package:inventra/widgets/texField.widget.dart';
 import 'package:provider/provider.dart';
 
 class AddProductToInventoryScreen extends StatefulWidget {
-  const AddProductToInventoryScreen({super.key});
+  const AddProductToInventoryScreen({super.key, this.productToEdit});
+
+  final Product? productToEdit;
 
   static const String routeName = '/addProductToInventoryScreen';
+
+  bool get isEditing => productToEdit != null;
 
   @override
   State<AddProductToInventoryScreen> createState() =>
@@ -24,7 +27,6 @@ class AddProductToInventoryScreen extends StatefulWidget {
 
 class _AddProductToInventoryScreenState
     extends State<AddProductToInventoryScreen> {
-  final TextEditingController passwordController = TextEditingController();
   final TextEditingController productNameController = TextEditingController();
   final TextEditingController productQuantityController =
       TextEditingController();
@@ -55,11 +57,32 @@ class _AddProductToInventoryScreenState
       isLoading = false;
       if (categories.isNotEmpty) {
         setState(() {
-          selectedCategory = categories.first.name;
+          final p = widget.productToEdit;
+          if (p != null) {
+            productNameController.text = p.name;
+            productQuantityController.text = p.quantity.toString();
+            productPriceController.text = p.price.toString();
+            productDescriptionController.text = p.description ?? '';
+            final names = categories.map((e) => e.name).toList();
+            selectedCategory = names.contains(p.category)
+                ? p.category
+                : categories.first.name;
+          } else {
+            selectedCategory = categories.first.name;
+          }
         });
       }
       if (categories.isEmpty) {
-        selectedCategory = 'Sin categorías';
+        setState(() {
+          selectedCategory = 'Sin categorías';
+          final p = widget.productToEdit;
+          if (p != null) {
+            productNameController.text = p.name;
+            productQuantityController.text = p.quantity.toString();
+            productPriceController.text = p.price.toString();
+            productDescriptionController.text = p.description ?? '';
+          }
+        });
         _onCategoryEmpty();
       }
     } catch (e) {
@@ -80,8 +103,76 @@ class _AddProductToInventoryScreenState
     }
   }
 
+  void _showValidationSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.lightError,
+      ),
+    );
+  }
+
+  bool _validateProductForm() {
+    final name = productNameController.text.trim();
+    if (name.isEmpty) {
+      _showValidationSnackBar('El nombre del producto es obligatorio.');
+      return false;
+    }
+
+    final qtyStr = productQuantityController.text.trim();
+    if (qtyStr.isEmpty) {
+      _showValidationSnackBar('La cantidad es obligatoria.');
+      return false;
+    }
+    final quantity = int.tryParse(qtyStr);
+    if (quantity == null || quantity < 0) {
+      _showValidationSnackBar(
+        'Ingrese una cantidad válida (número entero ≥ 0).',
+      );
+      return false;
+    }
+
+    final priceStr = productPriceController.text.trim();
+    if (priceStr.isEmpty) {
+      _showValidationSnackBar('El precio es obligatorio.');
+      return false;
+    }
+    final price = int.tryParse(priceStr);
+    if (price == null || price < 0) {
+      _showValidationSnackBar('Ingrese un precio válido (número entero ≥ 0).');
+      return false;
+    }
+
+    if (productDescriptionController.text.trim().isEmpty) {
+      _showValidationSnackBar('La descripción es obligatoria.');
+      return false;
+    }
+
+    if (isLoading ||
+        categories.isEmpty ||
+        selectedCategory == 'Cargando...' ||
+        selectedCategory == 'Sin categorías') {
+      _showValidationSnackBar('Seleccione una categoría válida.');
+      return false;
+    }
+
+    return true;
+  }
+
+  List<String> get _categoryDropdownItems {
+    final names = categories.map((e) => e.name).toList();
+    final p = widget.productToEdit;
+    if (p != null &&
+        p.category.isNotEmpty &&
+        !names.contains(p.category)) {
+      return [...names, p.category];
+    }
+    return names;
+  }
+
   @override
-  dispose() {
+  void dispose() {
     productNameController.dispose();
     productQuantityController.dispose();
     productPriceController.dispose();
@@ -95,7 +186,11 @@ class _AddProductToInventoryScreenState
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         resizeToAvoidBottomInset: false,
-        appBar: AppBar(title: const Text('Add Product to Inventory')),
+        appBar: AppBar(
+          title: Text(
+            widget.isEditing ? 'Editar producto' : 'Add Product to Inventory',
+          ),
+        ),
         body: Column(
           children: [
             Expanded(
@@ -124,7 +219,7 @@ class _AddProductToInventoryScreenState
                         keyboardType: TextInputType.number,
                       ),
                       InvDropDownWidget(
-                        items: categories.map((e) => e.name).toList(),
+                        items: _categoryDropdownItems,
                         selectedItem: selectedCategory,
                         onChanged: (value) {
                           setState(() {
@@ -157,14 +252,17 @@ class _AddProductToInventoryScreenState
             Padding(
               padding: const EdgeInsets.all(10),
               child: ElevatedButton(
-                onLongPress: _onError,
+                onLongPress: () => _onError(isUpdate: widget.isEditing),
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(double.infinity, 50), // Full width button
                 ),
                 onPressed: () {
                   _onAddproduct();
                 },
-                child: Text("Agregar", style: TextStyle(fontSize: 18)),
+                child: Text(
+                  widget.isEditing ? 'Guardar' : 'Agregar',
+                  style: TextStyle(fontSize: 18),
+                ),
               ),
             ),
           ],
@@ -214,22 +312,31 @@ class _AddProductToInventoryScreenState
   }
 
   void _onAddproduct() async {
-    final response = await productProvider.addProduct(
-      Product(
-        name: productNameController.text,
-        quantity: int.tryParse(productQuantityController.text) ?? 0,
-        price: int.tryParse(productPriceController.text) ?? 0,
-        category: selectedCategory,
-        description: productDescriptionController.text,
-        image: null,
-      ),
+    if (!_validateProductForm()) return;
+
+    final product = Product(
+      id: widget.productToEdit?.id,
+      name: productNameController.text.trim(),
+      quantity: int.parse(productQuantityController.text.trim()),
+      price: int.parse(productPriceController.text.trim()),
+      category: selectedCategory,
+      description: productDescriptionController.text.trim(),
+      image: widget.productToEdit?.image,
     );
+
+    final int response;
+    if (widget.isEditing) {
+      response = await productProvider.updateProduct(product);
+    } else {
+      response = await productProvider.addProduct(product);
+    }
+
     if (response == -1) {
-      _onError();
+      _onError(isUpdate: widget.isEditing);
     } else if (response == -2) {
       _onAlreadyExist();
     } else {
-      _onSuccess();
+      _onSuccess(isUpdate: widget.isEditing);
     }
   }
 
@@ -275,19 +382,21 @@ class _AddProductToInventoryScreenState
     );
   }
 
-  void _onSuccess() {
+  void _onSuccess({required bool isUpdate}) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("Producto agregado"),
+          title: Text(isUpdate ? "Producto actualizado" : "Producto agregado"),
           content: RichText(
             text: TextSpan(
               style: TextStyle(color: Colors.black),
               children: [
-                const TextSpan(
+                TextSpan(
                   style: TextStyle(fontSize: 16),
-                  text: "El producto ",
+                  text: isUpdate
+                      ? "Los datos del producto "
+                      : "El producto ",
                 ),
                 TextSpan(
                   text: productNameController.text,
@@ -296,9 +405,11 @@ class _AddProductToInventoryScreenState
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const TextSpan(
+                TextSpan(
                   style: TextStyle(fontSize: 16),
-                  text: " se ha agregado correctamente.",
+                  text: isUpdate
+                      ? " se han guardado correctamente."
+                      : " se ha agregado correctamente.",
                 ),
               ],
             ),
@@ -317,7 +428,7 @@ class _AddProductToInventoryScreenState
     );
   }
 
-  void _onError() {
+  void _onError({required bool isUpdate}) {
     showDialog(
       context: context,
       builder: (context) {
@@ -327,9 +438,11 @@ class _AddProductToInventoryScreenState
             text: TextSpan(
               style: TextStyle(color: Colors.black),
               children: [
-                const TextSpan(
+                TextSpan(
                   style: TextStyle(fontSize: 16),
-                  text: "No se pudo agregar el producto ",
+                  text: isUpdate
+                      ? "No se pudo guardar el producto "
+                      : "No se pudo agregar el producto ",
                 ),
                 TextSpan(
                   text: productNameController.text,

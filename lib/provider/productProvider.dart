@@ -27,7 +27,9 @@ class ProductProvider with ChangeNotifier {
     await loadProducts();
   }
 
-  Future<void> updateProduct(Product product) async {
+  Future<int> updateProduct(Product product) async {
+    final response = await productContract.updateProduct(product);
     await loadProducts();
+    return response;
   }
 }

@@ -4,19 +4,19 @@ import 'package:inventra/screens/homeScreen/homeScreen.dart';
 import 'package:inventra/screens/inventory/addProductToInventoryScreen.dart';
 import 'package:inventra/screens/inventory/inventoryListScreen.dart';
 import 'package:inventra/screens/quote/quoteScreen.dart';
-import 'package:inventra/screens/settingScreen/bussinesInfo/editBussinePhotoScreen.dart';
-import 'package:inventra/screens/settingScreen/bussinesInfo/editBussinesInfoScreen.dart';
-import 'package:inventra/screens/settingScreen/category/categoryScreen.dart';
-import 'package:inventra/screens/settingScreen/printers/addPrinterScreen.dart';
-import 'package:inventra/screens/settingScreen/printers/printerScreen.dart';
-import 'package:inventra/screens/settingScreen/settingScreen.dart';
+import 'package:inventra/screens/profile/bussinesInfo/editBussinePhotoScreen.dart';
+import 'package:inventra/screens/profile/bussinesInfo/editBussinesInfoScreen.dart';
+import 'package:inventra/screens/profile/category/categoryScreen.dart';
+import 'package:inventra/screens/profile/printers/addPrinterScreen.dart';
+import 'package:inventra/screens/profile/printers/printerScreen.dart';
+import 'package:inventra/screens/profile/profileScreen.dart';
 
 final Map<String, WidgetBuilder> appRoutes = {
   HomeScreen.routeName: (context) => const HomeScreen(),
   InventoryListScreen.routeName: (context) => const InventoryListScreen(),
   AddProductToInventoryScreen.routeName: (context) =>
       const AddProductToInventoryScreen(),
-  SettingScreen.routeName: (context) => const SettingScreen(),
+  ProfileScreen.routeName: (context) => const ProfileScreen(),
   EditBussinesPhotoScreen.routeName: (context) =>
       const EditBussinesPhotoScreen(),
   EditBussinesInfoScreen.routeName: (context) => const EditBussinesInfoScreen(),

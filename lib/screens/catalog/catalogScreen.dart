@@ -128,10 +128,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
       title: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            'Catálogo de productos',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
-          ),
+          Text('Catálogo de productos', style: TextStyle(fontSize: 20)),
           IconButton(
             onPressed: () {
               Navigator.pushNamed(

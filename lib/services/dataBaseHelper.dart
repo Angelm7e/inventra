@@ -38,8 +38,18 @@ class DatabaseHelper {
     category TEXT,
     description TEXT,
     image TEXT 
-)
-''');
+  )
+  ''');
+
+    await db.execute('''
+  CREATE TABLE printers(
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    type TEXT,
+    address TEXT,
+    port INTEGER
+  )
+  ''');
   }
 
   // Exportar a JSON
