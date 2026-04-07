@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:inventra/models/product.model.dart';
+import 'package:inventra/provider/billing_provider.dart';
 import 'package:inventra/provider/quoteProvider.dart';
+import 'package:inventra/screens/catalog/catalog_cart_target.dart';
 import 'package:inventra/screens/inventory/addProductToInventoryScreen.dart';
 import 'package:inventra/services/productService.dart';
 import 'package:inventra/utils/colors.dart';
@@ -62,8 +64,16 @@ class _CatalogScreenState extends State<CatalogScreen> {
     return _products.map((e) => e.category).toSet().toList()..sort();
   }
 
+  CatalogCartTarget get _cartTarget {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    return args is CatalogCartTarget ? args : CatalogCartTarget.billing;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final cartTarget = _cartTarget;
+    final addLabel =
+        cartTarget == CatalogCartTarget.quote ? 'Cotizar' : 'Facturar';
     return Scaffold(
       body: SafeArea(
         child: CustomScrollView(
@@ -107,7 +117,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
                     final product = _filteredProducts[index];
                     return ProductCard(
                       product: product,
-                      onAddToQuote: () => _showAddToQuote(product),
+                      addButtonLabel: addLabel,
+                      onAddToQuote: () =>
+                          _showAddProductSheet(product, cartTarget),
                     );
                   }, childCount: _filteredProducts.length),
                 ),
@@ -180,12 +192,30 @@ class _CatalogScreenState extends State<CatalogScreen> {
     );
   }
 
-  void _showAddToQuote(Product product) {
+  void _showAddProductSheet(Product product, CatalogCartTarget target) {
+    if (target == CatalogCartTarget.billing) {
+      final canAdd = context.read<BillingProvider>().availableToAdd(product);
+      if (canAdd <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Sin stock disponible para "${product.name}"'),
+            backgroundColor: Colors.orange.shade800,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        return;
+      }
+    }
+
     int quantity = 1;
+    final maxForBilling = target == CatalogCartTarget.billing
+        ? context.read<BillingProvider>().availableToAdd(product)
+        : 99999;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
+      builder: (sheetContext) => StatefulBuilder(
         builder: (context, setModalState) {
           return SafeArea(
             child: Container(
@@ -215,6 +245,25 @@ class _CatalogScreenState extends State<CatalogScreen> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                  if (target == CatalogCartTarget.billing) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'Disponible para facturar: $maxForBilling',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'En inventario: ${product.quantity} (la cotización no descuenta stock)',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -245,7 +294,9 @@ class _CatalogScreenState extends State<CatalogScreen> {
                         ),
                       ),
                       IconButton.filled(
-                        onPressed: () => setModalState(() => quantity++),
+                        onPressed: quantity < maxForBilling
+                            ? () => setModalState(() => quantity++)
+                            : null,
                         icon: const Icon(Icons.add, color: Colors.white),
                         style: IconButton.styleFrom(
                           backgroundColor: AppColors.lightPrimary,
@@ -256,25 +307,57 @@ class _CatalogScreenState extends State<CatalogScreen> {
                   const SizedBox(height: 16),
                   FilledButton.icon(
                     onPressed: () {
-                      context.read<QuoteProvider>().addToQuote(
-                        product,
-                        quantity: quantity,
-                      );
-                      Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Se agregaron $quantity a tu cotización',
+                      if (target == CatalogCartTarget.quote) {
+                        sheetContext.read<QuoteProvider>().addToQuote(
+                              product,
+                              quantity: quantity,
+                            );
+                        Navigator.pop(sheetContext);
+                        ScaffoldMessenger.of(sheetContext).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Se agregaron $quantity ítem(s) a la cotización',
+                            ),
+                            backgroundColor: AppColors.lightSuccess,
+                            behavior: SnackBarBehavior.floating,
                           ),
-                          backgroundColor: AppColors.lightPrimary,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
+                        );
+                      } else {
+                        final billing = sheetContext.read<BillingProvider>();
+                        final allowed = billing.availableToAdd(product);
+                        if (allowed <= 0) {
+                          Navigator.pop(sheetContext);
+                          ScaffoldMessenger.of(sheetContext).showSnackBar(
+                            SnackBar(
+                              content: const Text(
+                                'No hay stock suficiente para esta cantidad',
+                              ),
+                              backgroundColor: Colors.orange.shade800,
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                          return;
+                        }
+                        final q = quantity.clamp(1, allowed);
+                        billing.addToBilling(product, quantity: q);
+                        Navigator.pop(sheetContext);
+                        ScaffoldMessenger.of(sheetContext).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Se agregaron $q ítem(s) a la factura',
+                            ),
+                            backgroundColor: AppColors.lightSuccess,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
                     },
                     icon: const Icon(Icons.add_shopping_cart_rounded),
-                    label: const Text(
-                      'Agregar a cotización',
-                      style: TextStyle(color: Colors.white),
+                    label: Text(
+                      target == CatalogCartTarget.quote
+                          ? 'Agregar a cotización'
+                          : 'Agregar a factura',
+                      style: const TextStyle(color: Colors.white),
                     ),
                     style: FilledButton.styleFrom(
                       backgroundColor: AppColors.lightPrimary,

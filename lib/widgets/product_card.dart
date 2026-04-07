@@ -8,11 +8,13 @@ import '../utils/number_formatter.dart';
 class ProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback onAddToQuote;
+  final String addButtonLabel;
 
   const ProductCard({
     super.key,
     required this.product,
     required this.onAddToQuote,
+    this.addButtonLabel = 'Facturar',
   });
 
   @override
@@ -34,12 +36,12 @@ class ProductCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   child: product.image == null || product.image!.isEmpty
                       ? Container(
-                          color: AppColors.lightPrimary,
+                          color: AppColors.lightPrimary.withOpacity(0.2),
                           child: const Center(
                             child: Icon(
-                              Icons.cake_rounded,
+                              Icons.receipt,
                               size: 48,
-                              color: AppColors.lightPrimary,
+                              color: AppColors.lightBackground,
                             ),
                           ),
                         )
@@ -88,13 +90,21 @@ class ProductCard extends StatelessWidget {
                   fontSize: 15,
                 ),
               ),
+              const SizedBox(height: 4),
+              Text(
+                'Stock: ${product.quantity}',
+                style: TextStyle(
+                  color: Colors.grey[700],
+                  fontSize: 12,
+                ),
+              ),
               const SizedBox(height: 8),
               FilledButton.icon(
                 onPressed: onAddToQuote,
                 icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('Cotizar'),
+                label: Text(addButtonLabel),
                 style: FilledButton.styleFrom(
-                  backgroundColor: Colors.blue,
+                  backgroundColor: AppColors.lightPrimary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 8),
                 ),

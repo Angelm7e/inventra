@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:inventra/provider/categoryProvider.dart';
 import 'package:inventra/provider/printerProvider.dart';
 import 'package:inventra/provider/productProvider.dart';
+import 'package:inventra/provider/billing_provider.dart';
 import 'package:inventra/provider/quoteProvider.dart';
 import 'package:inventra/routes/routes.dart';
 import 'package:inventra/screens/homeScreen/homeScreen.dart';
@@ -46,6 +47,9 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider<QuoteProvider>(
           create: (context) => QuoteProvider(),
+        ),
+        ChangeNotifierProvider<BillingProvider>(
+          create: (context) => BillingProvider(),
         ),
         ChangeNotifierProvider<PrinterProvider>(
           create: (context) => PrinterProvider(PrinterService()),

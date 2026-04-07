@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:inventra/provider/quoteProvider.dart';
+import 'package:inventra/provider/billing_provider.dart';
 import 'package:inventra/screens/homeScreen/homeScreen.dart';
 import 'package:inventra/screens/inventory/inventoryListScreen.dart';
-import 'package:inventra/screens/quote/quoteScreen.dart';
+import 'package:inventra/screens/billing/billingScreen.dart';
 import 'package:inventra/screens/profile/profileScreen.dart';
 import 'package:inventra/utils/colors.dart';
 import 'package:provider/provider.dart';
@@ -32,9 +32,9 @@ class CustomBottomNavBar extends StatelessWidget {
             },
           ),
 
-          Consumer<QuoteProvider>(
-            builder: (context, quote, _) {
-              final n = quote.totalQuantity;
+          Consumer<BillingProvider>(
+            builder: (context, billing, _) {
+              final n = billing.totalQuantity;
               return _buildNavItem(
                 context,
                 icon: Icons.receipt_long,
@@ -42,7 +42,7 @@ class CustomBottomNavBar extends StatelessWidget {
                 isActive: currentIndex == 1,
                 badgeCount: n > 0 ? n : null,
                 onTap: () {
-                  Navigator.pushNamed(context, QuoteScreen.routeName);
+                  Navigator.pushNamed(context, BillingScreen.routeName);
                 },
               );
             },

@@ -11,7 +11,7 @@ class PrintingService {
     final profile = await CapabilityProfile.load();
     final printer = NetworkPrinter(PaperSize.mm80, profile);
 
-    final result = await printer.connect(ip, port: 9100);
+    final result = await printer.connect(ip, port: port);
 
     if (result != PosPrintResult.success) {
       print("Error conectando: $result");
@@ -21,9 +21,10 @@ class PrintingService {
     return printer;
   }
 
-  Future<void> printInvoice(List<Map<String, dynamic>> items) async {
+  /// Devuelve `false` si no se pudo conectar a la impresora.
+  Future<bool> printInvoice(List<Map<String, dynamic>> items) async {
     final printer = await _connect();
-    if (printer == null) return;
+    if (printer == null) return false;
 
     _printHeader(printer);
     _printBody(printer, items);
@@ -31,6 +32,7 @@ class PrintingService {
 
     printer.cut();
     printer.disconnect();
+    return true;
   }
 
   // Invoice header with business info

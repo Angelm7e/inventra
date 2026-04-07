@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:inventra/screens/catalog/catalogScreen.dart';
+import 'package:inventra/screens/quote/quoteScreen.dart';
 
 class DrawerWidget extends StatelessWidget {
   const DrawerWidget({super.key});
@@ -8,6 +9,7 @@ class DrawerWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     Size base = MediaQuery.of(context).size;
     return Drawer(
+      backgroundColor: Colors.white,
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
@@ -39,6 +41,18 @@ class DrawerWidget extends StatelessWidget {
             title: Text('Catalog'),
             onTap: () {
               Navigator.pushNamed(context, CatalogScreen.routeName);
+            },
+          ),
+          ListTile(
+            title: Text('Cotización'),
+            onTap: () {
+              Navigator.pushNamed(context, QuoteScreen.routeName);
+            },
+          ),
+          ListTile(
+            title: Text('Ventas'),
+            onTap: () {
+              // Navigator.pushNamed(context, CatalogScreen.routeName);
             },
           ),
         ],

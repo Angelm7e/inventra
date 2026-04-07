@@ -148,7 +148,8 @@ class _PrintersScreenState extends State<PrintersScreen> {
                                     decoration: BoxDecoration(
                                       color: Colors.white,
                                       border: Border.all(
-                                        color: Colors.grey.shade300,
+                                        color: AppColors.lightPrimary
+                                            .withOpacity(0.3),
                                         width: 1.2,
                                       ),
                                       borderRadius: BorderRadius.circular(12),
@@ -170,7 +171,8 @@ class _PrintersScreenState extends State<PrintersScreen> {
                                           children: [
                                             Icon(
                                               Icons.print,
-                                              color: AppColors.lightSecondary,
+                                              color: AppColors.lightPrimary
+                                                  .withValues(alpha: 0.8),
                                               size: 22,
                                             ),
                                             SizedBox(width: 8),
@@ -200,7 +202,8 @@ class _PrintersScreenState extends State<PrintersScreen> {
                                             Icon(
                                               Icons.dns,
                                               size: 18,
-                                              color: Colors.grey,
+                                              color: AppColors.lightPrimary
+                                                  .withValues(alpha: 0.8),
                                             ),
                                             SizedBox(width: 6),
                                             Text(
@@ -225,7 +228,8 @@ class _PrintersScreenState extends State<PrintersScreen> {
                                             Icon(
                                               Icons.usb,
                                               size: 18,
-                                              color: Colors.grey,
+                                              color: AppColors.lightPrimary
+                                                  .withValues(alpha: 0.8),
                                             ),
                                             SizedBox(width: 6),
                                             Text(

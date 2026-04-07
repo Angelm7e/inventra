@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:inventra/models/quoteItem.dart';
 import 'package:inventra/provider/quoteProvider.dart';
 import 'package:inventra/screens/catalog/catalogScreen.dart';
+import 'package:inventra/screens/catalog/catalog_cart_target.dart';
 import 'package:inventra/services/quote_pdf_service.dart';
 import 'package:inventra/utils/colors.dart';
 import 'package:inventra/utils/number_formatter.dart';
 import 'package:inventra/widgets/bottomNavBar.dart';
+import 'package:inventra/widgets/drawer.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:cross_file/cross_file.dart';
@@ -46,10 +48,10 @@ class _QuoteScreenState extends State<QuoteScreen> {
     final items = quote.quoteItems;
 
     return Scaffold(
+      drawer: DrawerWidget(),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: Container(),
         actions: [
           if (items.isNotEmpty)
             IconButton(
@@ -57,9 +59,19 @@ class _QuoteScreenState extends State<QuoteScreen> {
               icon: const Icon(Icons.delete_outline_rounded),
               color: AppColors.lightTextSecondary,
             ),
+          IconButton(
+            onPressed: () {
+              Navigator.pushNamed(
+                context,
+                CatalogScreen.routeName,
+                arguments: CatalogCartTarget.quote,
+              );
+            },
+            icon: const Icon(Icons.add, color: AppColors.lightPrimary),
+          ),
         ],
         title: const Text(
-          'Mi Cotización',
+          'Cotización',
           style: TextStyle(color: AppColors.lightTextPrimary),
         ),
       ),
@@ -68,6 +80,40 @@ class _QuoteScreenState extends State<QuoteScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Material(
+                color: AppColors.lightPrimary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        size: 20,
+                        color: AppColors.lightPrimary,
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Solo presupuesto: generar la cotización no resta del inventario. '
+                          'La venta y el descuento de stock se hacen en Facturar.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            height: 1.35,
+                            color: AppColors.lightTextSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
             if (items.isEmpty)
               _buildEmpty(context)
             else
@@ -101,7 +147,8 @@ class _QuoteScreenState extends State<QuoteScreen> {
               ),
             ),
             Text(
-              'Agrega productos desde el catálogo',
+              'Elige productos del catálogo (verás stock disponible)',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
                 color: AppColors.lightTextSecondary.withValues(alpha: 0.8),
@@ -112,9 +159,13 @@ class _QuoteScreenState extends State<QuoteScreen> {
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(),
                 onPressed: () {
-                  Navigator.pushNamed(context, CatalogScreen.routeName);
+                  Navigator.pushNamed(
+                    context,
+                    CatalogScreen.routeName,
+                    arguments: CatalogCartTarget.quote,
+                  );
                 },
-                child: Text("Agregar productos"),
+                child: const Text('Agregar productos'),
               ),
             ),
           ],
@@ -135,6 +186,7 @@ class _QuoteScreenState extends State<QuoteScreen> {
           item: item,
           onUpdateQuantity: (q) => quote.updateQuantity(item, q),
           onRemove: () => quote.removeFromQuote(item),
+          forQuote: true,
         );
       },
     );
@@ -183,7 +235,7 @@ class _QuoteScreenState extends State<QuoteScreen> {
             onPressed: () => _showClientNameDialog(context),
             icon: const Icon(Icons.picture_as_pdf_rounded),
             label: const Text(
-              'Generar PDF',
+              'Generar cotización (PDF)',
               style: TextStyle(color: Colors.white),
             ),
             style: FilledButton.styleFrom(
@@ -235,7 +287,7 @@ class _QuoteScreenState extends State<QuoteScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'Agregar nombre de quien factura',
+              'Nombre del cliente (aparecerá en el PDF de cotización)',
               style: TextStyle(
                 fontSize: 14,
                 color: AppColors.lightTextSecondary,
@@ -441,11 +493,13 @@ class _QuoteItemCard extends StatelessWidget {
   final QuoteItem item;
   final void Function(int quantity) onUpdateQuantity;
   final VoidCallback onRemove;
+  final bool forQuote;
 
   const _QuoteItemCard({
     required this.item,
     required this.onUpdateQuantity,
     required this.onRemove,
+    this.forQuote = false,
   });
 
   @override
@@ -477,6 +531,27 @@ class _QuoteItemCard extends StatelessWidget {
                       fontSize: 13,
                     ),
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'En inventario: ${item.product.quantity}',
+                    style: TextStyle(
+                      color: AppColors.lightTextSecondary.withValues(
+                        alpha: 0.9,
+                      ),
+                      fontSize: 12,
+                    ),
+                  ),
+                  if (forQuote && item.quantity > item.product.quantity) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Cantidad superior al stock (solo referencia en cotización)',
+                      style: TextStyle(
+                        color: Colors.orange.shade800,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   Row(
                     children: [

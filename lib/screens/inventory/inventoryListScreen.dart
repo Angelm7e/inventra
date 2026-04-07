@@ -6,6 +6,7 @@ import 'package:inventra/screens/inventory/addProductToInventoryScreen.dart';
 import 'package:inventra/utils/colors.dart';
 import 'package:inventra/utils/number_formatter.dart';
 import 'package:inventra/widgets/bottomNavBar.dart';
+import 'package:inventra/widgets/drawer.dart';
 import 'package:provider/provider.dart';
 
 class InventoryListScreen extends StatefulWidget {
@@ -54,7 +55,8 @@ class _InventoryListScreenState extends State<InventoryListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(leading: SizedBox(), title: const Text('Inventario')),
+      drawer: DrawerWidget(),
+      appBar: AppBar(title: const Text('Inventario')),
       body: RefreshIndicator(
         onRefresh: () async {
           _refreshList();
