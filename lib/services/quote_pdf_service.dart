@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
+import 'package:inventra/models/invoice_line.dart';
 import 'package:inventra/models/quoteItem.dart';
 import 'package:inventra/utils/number_formatter.dart';
 import 'package:pdf/pdf.dart';
@@ -16,6 +17,8 @@ class QuotePdfService {
     List<QuoteItem> items, {
     String? clientName,
   }) async {
+    final lines = InvoiceLine.fromQuoteItems(items);
+
     final pdf = pw.Document();
     Uint8List logoBytes;
     try {
@@ -24,18 +27,21 @@ class QuotePdfService {
       logoBytes = Uint8List(0);
     }
 
-    final data = items
+    final data = lines
         .map(
           (e) => [
-            e.product.name,
+            e.productName,
             '${e.quantity}',
-            NumberFormatter.currency(e.product.price.toDouble()),
-            NumberFormatter.currency(e.subtotal.toDouble()),
+            NumberFormatter.currency(e.unitPrice.toDouble()),
+            NumberFormatter.currency(e.lineSubtotal.toDouble()),
           ],
         )
         .toList();
 
-    final total = items.fold<double>(0, (s, e) => s + e.subtotal);
+    final total = lines.fold<double>(
+      0,
+      (s, e) => s + e.lineSubtotal.toDouble(),
+    );
     final name = (clientName ?? '').trim().isEmpty
         ? 'Cliente'
         : clientName!.trim();

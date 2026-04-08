@@ -28,6 +28,13 @@ class Product {
     image: json['image'],
   );
 
+  Map<String, dynamic> toQuote() => {
+    'id': id,
+    'name': name,
+    'price': price,
+    'quantity': quantity,
+  };
+
   Map<String, dynamic> toMap() => {
     'id': id,
     'name': name,

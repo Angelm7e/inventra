@@ -1,5 +1,6 @@
 import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
+import 'package:inventra/models/invoice_line.dart';
 
 class PrintingService {
   final String ip;
@@ -21,13 +22,14 @@ class PrintingService {
     return printer;
   }
 
-  /// Devuelve `false` si no se pudo conectar a la impresora.
-  Future<bool> printInvoice(List<Map<String, dynamic>> items) async {
+  Future<bool> printInvoice(List<InvoiceLine> lines) async {
+    if (lines.isEmpty) return false;
+
     final printer = await _connect();
     if (printer == null) return false;
 
     _printHeader(printer);
-    _printBody(printer, items);
+    _printBody(printer, lines);
     _printFooter(printer);
 
     printer.cut();
@@ -59,21 +61,21 @@ class PrintingService {
   // All of this will be dynamic base on the items and the bussines confi
 
   // Invoice body with items, quantities, prices, and totals
-  void _printBody(NetworkPrinter printer, List<Map<String, dynamic>> items) {
+  void _printBody(NetworkPrinter printer, List<InvoiceLine> lines) {
     double total = 0;
 
-    for (var item in items) {
-      final name = item['name'];
-      final qty = item['quantity'];
-      final price = item['price'];
-      final subtotal = qty * price;
-
+    for (final line in lines) {
+      final subtotal = line.lineSubtotal.toDouble();
       total += subtotal;
+
+      final name = line.productName.length > 24
+          ? '${line.productName.substring(0, 21)}...'
+          : line.productName;
 
       printer.row([
         PosColumn(text: name, width: 6),
         PosColumn(
-          text: "x$qty",
+          text: 'x${line.quantity}',
           width: 2,
           styles: PosStyles(align: PosAlign.right),
         ),
@@ -88,7 +90,7 @@ class PrintingService {
     printer.hr();
 
     printer.row([
-      PosColumn(text: "TOTAL", width: 6, styles: PosStyles(bold: true)),
+      PosColumn(text: 'TOTAL', width: 6, styles: PosStyles(bold: true)),
       PosColumn(
         text: total.toStringAsFixed(2),
         width: 6,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:inventra/models/invoice_line.dart';
 import 'package:inventra/models/printerDevice.dart';
 import 'package:inventra/provider/printerProvider.dart';
 import 'package:inventra/screens/catalog/catalogScreen.dart';
@@ -19,12 +20,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  /// Líneas de ejemplo para la factura de prueba (sustituir por datos reales cuando existan).
-  static const List<Map<String, dynamic>> _sampleInvoiceItems = [
-    {'name': 'Product 1', 'quantity': 1, 'price': 100, 'subtotal': 100},
-    {'name': 'Product 2', 'quantity': 1, 'price': 100, 'subtotal': 100},
-    {'name': 'Product 3', 'quantity': 1, 'price': 100, 'subtotal': 100},
-    {'name': 'Product 4', 'quantity': 1, 'price': 100, 'subtotal': 100},
+  /// Líneas de ejemplo para prueba de impresión (mismo modelo que la facturación real).
+  static const List<InvoiceLine> _sampleInvoiceLines = [
+    InvoiceLine(productName: 'Product 1', quantity: 1, unitPrice: 100),
+    InvoiceLine(productName: 'Product 2', quantity: 1, unitPrice: 100),
+    InvoiceLine(productName: 'Product 3', quantity: 1, unitPrice: 100),
+    InvoiceLine(productName: 'Product 4', quantity: 1, unitPrice: 100),
   ];
 
   Future<void> _printOnPrinter(
@@ -67,7 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
       final ok = await PrintingService(
         ip: printer.address.trim(),
         port: printer.port ?? 9100,
-      ).printInvoice(_sampleInvoiceItems);
+      ).printInvoice(_sampleInvoiceLines);
       if (!scaffoldContext.mounted) return;
       if (!ok) {
         messenger.showSnackBar(

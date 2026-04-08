@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:inventra/models/invoice_line.dart';
 import 'package:inventra/models/printerDevice.dart';
 import 'package:inventra/models/product.model.dart';
 import 'package:inventra/models/quoteItem.dart';
@@ -46,13 +47,6 @@ class _BillingScreenState extends State<BillingScreen> {
     clientNameController = TextEditingController();
   }
 
-  static const List<Map<String, dynamic>> _itemsToPrint = [
-    {'name': 'Product 1', 'quantity': 1, 'price': 100, 'subtotal': 100},
-    {'name': 'Product 2', 'quantity': 1, 'price': 100, 'subtotal': 100},
-    {'name': 'Product 3', 'quantity': 1, 'price': 100, 'subtotal': 100},
-    {'name': 'Product 4', 'quantity': 1, 'price': 100, 'subtotal': 100},
-  ];
-
   double _totalFor(List<QuoteItem> items) =>
       items.fold<double>(0, (s, e) => s + e.subtotal);
 
@@ -71,7 +65,10 @@ class _BillingScreenState extends State<BillingScreen> {
           if (items.isNotEmpty)
             IconButton(
               onPressed: () => _confirmClear(context),
-              icon: const Icon(Icons.delete_outline_rounded),
+              icon: Icon(
+                Icons.delete_outline_rounded,
+                color: AppColors.lightError.withValues(alpha: 0.7),
+              ),
               color: AppColors.lightTextSecondary,
             ),
           IconButton(
@@ -242,7 +239,7 @@ class _BillingScreenState extends State<BillingScreen> {
           ),
           const SizedBox(height: 16),
           FilledButton.icon(
-            onPressed: () => _showClientNameDialog(context),
+            onPressed: () => showPrintInvoice(context),
             // icon: const Icon(Icons.receipt_long_rounded),
             label: const Text(
               'Generar factura',
@@ -268,19 +265,27 @@ class _BillingScreenState extends State<BillingScreen> {
           '¿Quieres eliminar todos los productos de tu factura?',
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          FilledButton(
-            onPressed: () {
-              context.read<BillingProvider>().clearBilling();
-              Navigator.pop(context);
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.lightPrimary,
-            ),
-            child: const Text('Vaciar'),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              OutlinedButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  context.read<BillingProvider>().clearBilling();
+                  Navigator.pop(context);
+                },
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.lightPrimary,
+                ),
+                child: const Text(
+                  'Vaciar',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -638,9 +643,21 @@ class _BillingScreenState extends State<BillingScreen> {
   Future<void> _printOnPrinter(
     BuildContext scaffoldContext,
     PrinterDevice printer,
-    // List<Map<String, dynamic>> items,
   ) async {
     final messenger = ScaffoldMessenger.of(scaffoldContext);
+
+    final lines = InvoiceLine.fromQuoteItems(
+      scaffoldContext.read<BillingProvider>().billingItems,
+    );
+    if (lines.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Agrega productos a la factura antes de imprimir.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
 
     if (printer.type != 'network') {
       messenger.showSnackBar(
@@ -676,7 +693,7 @@ class _BillingScreenState extends State<BillingScreen> {
       final ok = await PrintingService(
         ip: printer.address.trim(),
         port: printer.port ?? 9100,
-      ).printInvoice(_itemsToPrint);
+      ).printInvoice(lines);
       if (!scaffoldContext.mounted) return;
       if (!ok) {
         messenger.showSnackBar(
@@ -1028,8 +1045,11 @@ class _BillingItemCard extends StatelessWidget {
     final atMax = item.quantity >= item.product.quantity;
     return Card(
       elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: AppColors.lightBackground,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: AppColors.lightPrimary.withValues(alpha: 0.8)),
+      ),
+      color: AppColors.lightSurface,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -1128,7 +1148,7 @@ class _BillingItemCard extends StatelessWidget {
                 IconButton(
                   onPressed: onRemove,
                   icon: const Icon(Icons.delete_outline),
-                  color: AppColors.lightTextSecondary,
+                  color: AppColors.lightError.withValues(alpha: 0.7),
                 ),
               ],
             ),
