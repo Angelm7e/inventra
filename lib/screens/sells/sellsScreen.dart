@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class MyWidget extends StatelessWidget {
-  const MyWidget({super.key});
+class SellsScreen extends StatelessWidget {
+  const SellsScreen({super.key});
   static const routeName = '/sellsScreen';
 
   @override

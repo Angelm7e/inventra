@@ -18,7 +18,12 @@ class DatabaseHelper {
   Future<Database> _initDatabase() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
     String path = join(documentsDirectory.path, _databaseName);
-    return await openDatabase(path, version: 1, onCreate: _onCreate);
+    return await openDatabase(
+      path,
+      version: 2,
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
   }
 
   Future _onCreate(Database db, int version) async {
@@ -50,6 +55,51 @@ class DatabaseHelper {
     port INTEGER
   )
   ''');
+
+    await db.execute('''
+  CREATE TABLE business_settings(
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    name TEXT,
+    tax_id TEXT,
+    address TEXT,
+    phone TEXT,
+    invoice_prefix TEXT,
+    auto_print INTEGER DEFAULT 0
+  )
+  ''');
+  }
+
+  Future _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute('''
+      CREATE TABLE IF NOT EXISTS business_settings(
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        name TEXT,
+        tax_id TEXT,
+        address TEXT,
+        phone TEXT,
+        invoice_prefix TEXT,
+        auto_print INTEGER DEFAULT 0
+      )
+      ''');
+    }
+  }
+
+  Future<Map<String, dynamic>> getBusinessSettings() async {
+    final db = await database;
+    final response = await db.query('business_settings', where: 'id = 1');
+    if (response.isEmpty) return {};
+    return response.first;
+  }
+
+  Future<void> saveBusinessSettings(Map<String, dynamic> settings) async {
+    final db = await database;
+    final payload = <String, dynamic>{...settings, 'id': 1};
+    await db.insert(
+      'business_settings',
+      payload,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
   }
 
   // Exportar a JSON
