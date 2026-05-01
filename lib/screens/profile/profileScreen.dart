@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:inventra/screens/profile/bussinesInfo/editBussinesInfoScreen.dart';
+import 'package:inventra/screens/profile/bussinesInfo/business_invoice_settings_screen.dart';
 import 'package:inventra/screens/profile/category/categoryScreen.dart';
+import 'package:inventra/screens/profile/exportData/exportDataScreen.dart';
 import 'package:inventra/screens/profile/printers/printerScreen.dart';
 import 'package:inventra/widgets/bottomNavBar.dart';
 import 'package:inventra/widgets/customSettingsButtom.dart';
@@ -72,10 +74,10 @@ class ProfileScreen extends StatelessWidget {
                       child: CustomSettingsButtom(
                         label: "Editar factura",
                         onTap: () {
-                          // Navigator.pushNamed(
-                          //   context,
-                          //   ItinerariesScreen.routeName,
-                          // );
+                          Navigator.pushNamed(
+                            context,
+                            BusinessInvoiceSettingsScreen.routeName,
+                          );
                         },
                         icon: Icons.receipt_long,
                       ),
@@ -83,10 +85,7 @@ class ProfileScreen extends StatelessWidget {
                     CustomSettingsButtom(
                       label: "Exportar datos",
                       onTap: () {
-                        // Navigator.pushNamed(
-                        //   context,
-                        //   ItinerariesScreen.routeName,
-                        // );
+                        Navigator.pushNamed(context, ExportDataScreen.routeName);
                       },
                       icon: Icons.file_download,
                     ),

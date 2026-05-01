@@ -3,7 +3,12 @@ import 'package:inventra/models/invoice_line.dart';
 import 'package:inventra/models/printerDevice.dart';
 import 'package:inventra/provider/printerProvider.dart';
 import 'package:inventra/screens/catalog/catalogScreen.dart';
+import 'package:inventra/screens/inventory/inventoryListScreen.dart';
+import 'package:inventra/screens/profile/bussinesInfo/business_invoice_settings_screen.dart';
 import 'package:inventra/screens/profile/printers/addPrinterScreen.dart';
+import 'package:inventra/screens/profile/profileScreen.dart';
+import 'package:inventra/screens/quote/quoteScreen.dart';
+import 'package:inventra/screens/sells/sellsScreen.dart';
 import 'package:inventra/services/printerService/printingService.dart';
 import 'package:inventra/utils/colors.dart';
 import 'package:inventra/widgets/bottomNavBar.dart';
@@ -107,26 +112,77 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       drawer: DrawerWidget(),
       appBar: AppBar(title: const Text('Home Screen')),
-      body: Column(
+      body: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
-          Text('Welcome to the Home Screen!'),
-          TextButton(
-            onPressed: () {
-              Navigator.pushNamed(context, CatalogScreen.routeName);
-            },
-            child: Text('Go to Catalog'),
+          const Text(
+            'Módulos de usuario',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
-          TextButton(
-            onPressed: () {
-              showPrintInvoice(context);
-            },
-            child: Text('Print Invoice'),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _homeOption(context, 'Catálogo', Icons.store, () {
+                Navigator.pushNamed(context, CatalogScreen.routeName);
+              }),
+              _homeOption(context, 'Inventario', Icons.inventory_2, () {
+                Navigator.pushNamed(context, InventoryListScreen.routeName);
+              }),
+              _homeOption(context, 'Cotizaciones', Icons.request_quote, () {
+                Navigator.pushNamed(context, QuoteScreen.routeName);
+              }),
+              _homeOption(context, 'Ventas', Icons.sell, () {
+                Navigator.pushNamed(context, SellsScreen.routeName);
+              }),
+              _homeOption(context, 'Configuración', Icons.settings, () {
+                Navigator.pushNamed(context, ProfileScreen.routeName);
+              }),
+              _homeOption(context, 'Imprimir factura', Icons.print, () {
+                showPrintInvoice(context);
+              }),
+              _homeOption(context, 'Negocio y factura', Icons.receipt_long, () {
+                Navigator.pushNamed(
+                  context,
+                  BusinessInvoiceSettingsScreen.routeName,
+                );
+              }),
+            ],
           ),
         ],
       ),
       bottomNavigationBar: CustomBottomNavBar(
         currentIndex: 0,
         // onTabSelected: (index) {},
+      ),
+    );
+  }
+
+  Widget _homeOption(
+    BuildContext context,
+    String label,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
+    final width = (MediaQuery.of(context).size.width - 44) / 2;
+    return SizedBox(
+      width: width,
+      child: Card(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
+            child: Column(
+              children: [
+                Icon(icon, size: 30, color: AppColors.lightPrimary),
+                const SizedBox(height: 8),
+                Text(label, textAlign: TextAlign.center),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
