@@ -239,7 +239,7 @@ class _BillingScreenState extends State<BillingScreen> {
           ),
           const SizedBox(height: 16),
           FilledButton.icon(
-            onPressed: () => showPrintInvoice(context),
+            onPressed: () => showPrintBillingAction(context),
             // icon: const Icon(Icons.receipt_long_rounded),
             label: const Text(
               'Generar factura',
@@ -350,7 +350,10 @@ class _BillingScreenState extends State<BillingScreen> {
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.lightPrimary,
             ),
-            child: const Text('Continuar'),
+            child: const Text(
+              'Continuar',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -460,8 +463,11 @@ class _BillingScreenState extends State<BillingScreen> {
                 ),
                 const SizedBox(height: 30),
                 FilledButton.icon(
-                  icon: const Icon(Icons.download_rounded),
-                  label: const Text('Guardar en Descargas'),
+                  icon: const Icon(Icons.download_rounded, color: Colors.white),
+                  label: const Text(
+                    'Guardar en Descargas',
+                    style: TextStyle(color: Colors.white),
+                  ),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.lightPrimary,
                     minimumSize: const Size(double.infinity, 50),
@@ -940,93 +946,93 @@ class _BillingScreenState extends State<BillingScreen> {
     );
   }
 
-  // void showPrintBillingAction(BuildContext parentContext) {
-  //   showModalBottomSheet(
-  //     context: parentContext,
-  //     isScrollControlled: true,
-  //     backgroundColor: Colors.transparent,
-  //     // isDismissible: false,
-  //     builder: (sheetContext) {
-  //       return Stack(
-  //         children: [
-  //           DraggableScrollableSheet(
-  //             initialChildSize: 0.27,
-  //             minChildSize: 0.27,
-  //             maxChildSize: 0.27,
-  //             builder: (context, scrollController) {
-  //               return Container(
-  //                 padding: const EdgeInsets.all(16),
-  //                 decoration: BoxDecoration(
-  //                   color: Colors.white,
-  //                   borderRadius: const BorderRadius.vertical(
-  //                     top: Radius.circular(20),
-  //                   ),
-  //                   border: Border.all(color: Colors.grey[300]!, width: 1),
-  //                 ),
-  //                 child: Column(
-  //                   // crossAxisAlignment: CrossAxisAlignment.start,
-  //                   children: [
-  //                     const SizedBox(height: 12),
-  //                     // Indicador draggable
-  //                     Container(
-  //                       width: 40,
-  //                       height: 4,
-  //                       decoration: BoxDecoration(
-  //                         color: Colors.grey[400],
-  //                         borderRadius: BorderRadius.circular(10),
-  //                       ),
-  //                     ),
-  //                     const SizedBox(height: 12),
-  //                     Text(
-  //                       'Generar factura',
-  //                       style: TextStyle(
-  //                         fontSize: 16,
-  //                         fontWeight: FontWeight.bold,
-  //                       ),
-  //                     ),
-  //                     const SizedBox(height: 12),
-  //                     FilledButton(
-  //                       style: FilledButton.styleFrom(
-  //                         backgroundColor: AppColors.lightPrimary,
-  //                         minimumSize: const Size(double.infinity, 50),
-  //                       ),
-  //                       onPressed: () async {
-  //                         Navigator.pop(sheetContext);
-  //                         await showAvailablePrinters(parentContext);
-  //                       },
-  //                       child: Text(
-  //                         'Imprimir factura',
-  //                         style: TextStyle(color: Colors.white, fontSize: 16),
-  //                       ),
-  //                     ),
-  //                     const SizedBox(height: 12),
-  //                     OutlinedButton(
-  //                       style: OutlinedButton.styleFrom(
-  //                         side: BorderSide(color: AppColors.lightPrimary),
-  //                         minimumSize: const Size(double.infinity, 50),
-  //                       ),
-  //                       onPressed: () {
-  //                         Navigator.pop(sheetContext);
-  //                         _showClientNameDialog(context);
-  //                       },
-  //                       child: Text(
-  //                         'Generar PDF',
-  //                         style: TextStyle(
-  //                           color: AppColors.lightPrimary,
-  //                           fontSize: 16,
-  //                         ),
-  //                       ),
-  //                     ),
-  //                   ],
-  //                 ),
-  //               );
-  //             },
-  //           ),
-  //         ],
-  //       );
-  //     },
-  //   );
-  // }
+  void showPrintBillingAction(BuildContext parentContext) {
+    showModalBottomSheet(
+      context: parentContext,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      // isDismissible: false,
+      builder: (sheetContext) {
+        return Stack(
+          children: [
+            DraggableScrollableSheet(
+              initialChildSize: 0.27,
+              minChildSize: 0.27,
+              maxChildSize: 0.27,
+              builder: (context, scrollController) {
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                    border: Border.all(color: Colors.grey[300]!, width: 1),
+                  ),
+                  child: Column(
+                    // crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 12),
+                      // Indicador draggable
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[400],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Generar factura',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.lightPrimary,
+                          minimumSize: const Size(double.infinity, 50),
+                        ),
+                        onPressed: () async {
+                          Navigator.pop(sheetContext);
+                          await showAvailablePrinters(parentContext);
+                        },
+                        child: Text(
+                          'Imprimir factura',
+                          style: TextStyle(color: Colors.white, fontSize: 16),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: AppColors.lightPrimary),
+                          minimumSize: const Size(double.infinity, 50),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(sheetContext);
+                          _showClientNameDialog(parentContext);
+                        },
+                        child: Text(
+                          'Generar PDF',
+                          style: TextStyle(
+                            color: AppColors.lightPrimary,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
 
 class _BillingItemCard extends StatelessWidget {

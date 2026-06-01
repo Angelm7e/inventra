@@ -20,7 +20,7 @@ class DatabaseHelper {
     String path = join(documentsDirectory.path, _databaseName);
     return await openDatabase(
       path,
-      version: 2,
+      version: 4,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -63,8 +63,10 @@ class DatabaseHelper {
     tax_id TEXT,
     address TEXT,
     phone TEXT,
+    logo_path TEXT,
     invoice_prefix TEXT,
-    auto_print INTEGER DEFAULT 0
+    auto_print INTEGER DEFAULT 0,
+    bank_accounts TEXT
   )
   ''');
   }
@@ -78,10 +80,27 @@ class DatabaseHelper {
         tax_id TEXT,
         address TEXT,
         phone TEXT,
+        logo_path TEXT,
         invoice_prefix TEXT,
-        auto_print INTEGER DEFAULT 0
+        auto_print INTEGER DEFAULT 0,
+        bank_accounts TEXT
       )
       ''');
+    }
+
+    if (oldVersion < 3) {
+      await db.execute(
+        'ALTER TABLE business_settings ADD COLUMN logo_path TEXT',
+      );
+    }
+
+    if (oldVersion < 4) {
+      await db.execute(
+        'ALTER TABLE business_settings ADD COLUMN bank_accounts TEXT',
+      );
+      await db.execute(
+        "UPDATE business_settings SET bank_accounts = '[]' WHERE bank_accounts IS NULL",
+      );
     }
   }
 
@@ -94,7 +113,19 @@ class DatabaseHelper {
 
   Future<void> saveBusinessSettings(Map<String, dynamic> settings) async {
     final db = await database;
-    final payload = <String, dynamic>{...settings, 'id': 1};
+    final current = await getBusinessSettings();
+    final payload = <String, dynamic>{
+      'id': 1,
+      'name': current['name'],
+      'tax_id': current['tax_id'],
+      'address': current['address'],
+      'phone': current['phone'],
+      'logo_path': current['logo_path'],
+      'invoice_prefix': current['invoice_prefix'] ?? 'INV',
+      'auto_print': current['auto_print'] ?? 0,
+      'bank_accounts': current['bank_accounts'] ?? '[]',
+      ...settings,
+    };
     await db.insert(
       'business_settings',
       payload,

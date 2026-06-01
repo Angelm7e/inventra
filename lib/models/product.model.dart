@@ -4,8 +4,7 @@ class Product {
   final int quantity;
   final int price;
   final String category;
-  final String?
-  description; //TODO: make it non nullable when description is added to the add product screen
+  final String? description;
   final String? image;
 
   Product({

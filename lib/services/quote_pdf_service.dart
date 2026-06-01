@@ -1,8 +1,10 @@
-import 'dart:typed_data';
+import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:inventra/models/invoice_line.dart';
 import 'package:inventra/models/quoteItem.dart';
+import 'package:inventra/services/dataBaseHelper.dart';
 import 'package:inventra/utils/number_formatter.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -13,18 +15,62 @@ class QuotePdfService {
     return data.buffer.asUint8List();
   }
 
+  static List<Map<String, String>> _parseBankAccounts(dynamic raw) {
+    if (raw == null) return [];
+
+    try {
+      if (raw is String && raw.isNotEmpty) {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          return decoded
+              .whereType<Map<dynamic, dynamic>>()
+              .map(
+                (item) => item.map(
+                  (key, value) =>
+                      MapEntry(key.toString(), value?.toString() ?? ''),
+                ),
+              )
+              .map((item) => item.cast<String, String>())
+              .where(
+                (item) =>
+                    (item['bank'] ?? '').isNotEmpty &&
+                    (item['account'] ?? '').isNotEmpty,
+              )
+              .toList();
+        }
+      }
+    } catch (_) {}
+
+    return [];
+  }
+
   static Future<Uint8List> generateQuotePdfBytes(
     List<QuoteItem> items, {
     String? clientName,
   }) async {
     final lines = InvoiceLine.fromQuoteItems(items);
 
+    final settings = await DatabaseHelper.instance.getBusinessSettings();
+    final businessName = settings['name'] as String? ?? 'Mi negocio';
+    final businessAddress = settings['address'] as String? ?? '';
+    final businessPhone = settings['phone'] as String? ?? '';
+    final logoPath = settings['logo_path'] as String?;
+    final bankAccounts = _parseBankAccounts(
+      settings['bank_accounts'],
+    ).take(3).toList();
+
     final pdf = pw.Document();
     Uint8List logoBytes;
-    try {
-      logoBytes = await loadAssetImage('assets/logo.jpg');
-    } catch (_) {
-      logoBytes = Uint8List(0);
+    if (logoPath != null && File(logoPath).existsSync()) {
+      logoBytes = await File(logoPath).readAsBytes();
+    } else {
+      try {
+        logoBytes = await loadAssetImage(
+          'assets/branding/defaultProfileIMG.png',
+        );
+      } catch (_) {
+        logoBytes = Uint8List(0);
+      }
     }
 
     final data = lines
@@ -54,7 +100,7 @@ class QuotePdfService {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              _header(logoBytes),
+              _header(logoBytes, businessName, businessAddress, businessPhone),
               pw.SizedBox(height: 20),
               _clientInfo(name),
               pw.SizedBox(height: 20),
@@ -84,49 +130,7 @@ class QuotePdfService {
                 ),
               ),
               pw.Spacer(),
-              pw.Row(
-                // mainAxisAlignment: pw.MainAxisAlignment.end,
-                crossAxisAlignment: pw.CrossAxisAlignment.end,
-                children: [
-                  pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        'Nuestras cuentas bancarias',
-                        style: pw.TextStyle(
-                          fontSize: 10,
-                          fontWeight: pw.FontWeight.bold,
-                        ),
-                      ),
-                      pw.Text(
-                        'A nombre de: Massiel Moreta',
-                        style: pw.TextStyle(
-                          fontSize: 10,
-                          fontWeight: pw.FontWeight.bold,
-                        ),
-                      ),
-                      pw.Text(
-                        'Banco Popular: 841619414',
-                        style: const pw.TextStyle(fontSize: 10),
-                      ),
-                      pw.Text(
-                        'Banco BHD: 26721880018',
-                        style: const pw.TextStyle(fontSize: 10),
-                      ),
-                      pw.Text(
-                        'Banco APAP: 100191327',
-                        style: const pw.TextStyle(fontSize: 10),
-                      ),
-                    ],
-                  ),
-                  pw.SizedBox(width: 100),
-                  pw.Text(
-                    'Gracias por confiar en nosotros',
-                    style: const pw.TextStyle(fontSize: 10),
-                  ),
-                  // pw.Spacer()
-                ],
-              ),
+              _footer(bankAccounts),
             ],
           );
         },
@@ -136,7 +140,12 @@ class QuotePdfService {
     return pdf.save();
   }
 
-  static pw.Widget _header(Uint8List logoBytes) {
+  static pw.Widget _header(
+    Uint8List logoBytes,
+    String businessName,
+    String businessAddress,
+    String businessPhone,
+  ) {
     return pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       children: [
@@ -144,23 +153,26 @@ class QuotePdfService {
           pw.Image(pw.MemoryImage(logoBytes), width: 100)
         else
           pw.Text(
-            'Dulce Euphoria',
+            businessName,
             style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold),
           ),
         pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
             pw.Text(
-              'Dulce Euphoria',
+              businessName,
               style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
             ),
-            pw.Text(
-              'Santo Domingo Norte',
-              style: pw.TextStyle(fontSize: 16, color: PdfColors.grey500),
-            ),
-            pw.Text(
-              '809-209-0777',
-              style: pw.TextStyle(fontSize: 16, color: PdfColors.grey500),
-            ),
+            if (businessAddress.isNotEmpty)
+              pw.Text(
+                businessAddress,
+                style: pw.TextStyle(fontSize: 16, color: PdfColors.grey500),
+              ),
+            if (businessPhone.isNotEmpty)
+              pw.Text(
+                businessPhone,
+                style: pw.TextStyle(fontSize: 16, color: PdfColors.grey500),
+              ),
           ],
         ),
         pw.Text('Cotización', style: pw.TextStyle(fontSize: 18)),
@@ -176,6 +188,43 @@ class QuotePdfService {
         pw.Text('Fecha: ${DateTime.now().toString().split(' ')[0]}'),
         // pw.Text(
         //     'Cotización #: ${DateTime.now().millisecondsSinceEpoch % 10000}'),
+      ],
+    );
+  }
+
+  static pw.Widget _footer(List<Map<String, String>> bankAccounts) {
+    return pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.end,
+      children: [
+        if (bankAccounts.isNotEmpty)
+          pw.Expanded(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'Nuestras cuentas bancarias',
+                  style: pw.TextStyle(
+                    fontSize: 10,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 4),
+                ...bankAccounts.map(
+                  (account) => pw.Text(
+                    '${account['bank']}: ${account['account']}',
+                    style: const pw.TextStyle(fontSize: 10),
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          pw.Spacer(),
+        pw.SizedBox(width: 24),
+        pw.Text(
+          'Gracias por confiar en nosotros',
+          style: const pw.TextStyle(fontSize: 10),
+        ),
       ],
     );
   }

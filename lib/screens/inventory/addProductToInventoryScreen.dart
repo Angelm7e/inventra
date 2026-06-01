@@ -163,9 +163,7 @@ class _AddProductToInventoryScreenState
   List<String> get _categoryDropdownItems {
     final names = categories.map((e) => e.name).toList();
     final p = widget.productToEdit;
-    if (p != null &&
-        p.category.isNotEmpty &&
-        !names.contains(p.category)) {
+    if (p != null && p.category.isNotEmpty && !names.contains(p.category)) {
       return [...names, p.category];
     }
     return names;
@@ -188,7 +186,7 @@ class _AddProductToInventoryScreenState
         resizeToAvoidBottomInset: false,
         appBar: AppBar(
           title: Text(
-            widget.isEditing ? 'Editar producto' : 'Add Product to Inventory',
+            widget.isEditing ? 'Editar producto' : 'Agregar producto',
           ),
         ),
         body: Column(
@@ -203,19 +201,19 @@ class _AddProductToInventoryScreenState
                       SizedBox(height: 10),
                       InvTextField(
                         controller: productNameController,
-                        hintText: "Element Name",
-                        labelText: "Element Name",
+                        hintText: "Nombre del producto",
+                        labelText: "Nombre del producto",
                       ),
                       InvTextField(
                         controller: productQuantityController,
-                        hintText: "Element Quantity",
-                        labelText: "Element Quantity",
+                        hintText: "Cantidad del producto",
+                        labelText: "Cantidad del producto",
                         keyboardType: TextInputType.number,
                       ),
                       InvTextField(
                         controller: productPriceController,
-                        hintText: "Element Price",
-                        labelText: "Element Price",
+                        hintText: "Precio del producto",
+                        labelText: "Precio del producto",
                         keyboardType: TextInputType.number,
                       ),
                       InvDropDownWidget(
@@ -232,8 +230,8 @@ class _AddProductToInventoryScreenState
                       InvTextField(
                         maxLines: 3,
                         controller: productDescriptionController,
-                        hintText: "Element Description",
-                        labelText: "Element Description",
+                        hintText: "Descripción del producto",
+                        labelText: "Descripción del producto",
                       ),
                       SizedBox(height: 10),
                     ],
@@ -242,13 +240,6 @@ class _AddProductToInventoryScreenState
               ),
             ),
 
-            ElevatedButton(
-              onPressed: () {
-                DatabaseHelper.instance.clearTable();
-              },
-              child: Text("Clear database"),
-            ),
-            // Spacer(),
             Padding(
               padding: const EdgeInsets.all(10),
               child: ElevatedButton(
@@ -394,9 +385,7 @@ class _AddProductToInventoryScreenState
               children: [
                 TextSpan(
                   style: TextStyle(fontSize: 16),
-                  text: isUpdate
-                      ? "Los datos del producto "
-                      : "El producto ",
+                  text: isUpdate ? "Los datos del producto " : "El producto ",
                 ),
                 TextSpan(
                   text: productNameController.text,
