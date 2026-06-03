@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:inventra/constData/bankList.dart';
+import 'package:inventra/contracts/headerColors.dart';
 import 'package:inventra/services/dataBaseHelper.dart';
 import 'package:inventra/utils/colors.dart';
 
@@ -17,6 +18,8 @@ class BusinessInvoiceSettingsScreen extends StatefulWidget {
 
 class _BusinessInvoiceSettingsScreenState
     extends State<BusinessInvoiceSettingsScreen> {
+  static const int _defaultInvoiceHeaderColor = 0xFF6BD5EF;
+
   final _formKey = GlobalKey<FormState>();
   final _businessTaxIdController = TextEditingController();
   final _invoicePrefixController = TextEditingController(text: 'INV');
@@ -24,6 +27,7 @@ class _BusinessInvoiceSettingsScreenState
 
   bool _autoPrint = false;
   bool _loading = true;
+  int _invoiceHeaderColor = _defaultInvoiceHeaderColor;
 
   @override
   void initState() {
@@ -38,11 +42,18 @@ class _BusinessInvoiceSettingsScreenState
       _businessTaxIdController.text = settings['tax_id'] ?? '';
       _invoicePrefixController.text = settings['invoice_prefix'] ?? 'INV';
       _autoPrint = (settings['auto_print'] ?? 0) == 1;
+      _invoiceHeaderColor = _readHeaderColor(settings['invoice_header_color']);
       _invoiceBankAccounts = _parseBankAccounts(
         settings['bank_accounts'],
       ).take(3).toList();
       _loading = false;
     });
+  }
+
+  int _readHeaderColor(dynamic raw) {
+    if (raw is int) return raw;
+    if (raw is String) return int.tryParse(raw) ?? _defaultInvoiceHeaderColor;
+    return _defaultInvoiceHeaderColor;
   }
 
   List<Map<String, String>> _parseBankAccounts(dynamic raw) {
@@ -76,6 +87,7 @@ class _BusinessInvoiceSettingsScreenState
       'tax_id': _businessTaxIdController.text.trim(),
       'invoice_prefix': _invoicePrefixController.text.trim(),
       'auto_print': _autoPrint ? 1 : 0,
+      'invoice_header_color': _invoiceHeaderColor,
       'bank_accounts': jsonEncode(_invoiceBankAccounts.take(3).toList()),
     });
 
@@ -171,7 +183,89 @@ class _BusinessInvoiceSettingsScreenState
     accountController.dispose();
   }
 
-  Widget _buildBankAccountTile(int index, Map<String, String> account) {
+  Future<void> _showBankAccountsBottomSheet() async {
+    final heightFactor = _invoiceBankAccounts.length <= 1 ? 0.35 : 0.5;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return FractionallySizedBox(
+              heightFactor: heightFactor,
+              child: SafeArea(
+                top: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 42,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Cuentas bancarias',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: _invoiceBankAccounts.isEmpty
+                            ? Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Text(
+                                  'No hay cuentas bancarias agregadas.',
+                                  style: TextStyle(color: Colors.black54),
+                                ),
+                              )
+                            : ListView.builder(
+                                itemCount: _invoiceBankAccounts.length,
+                                itemBuilder: (context, index) {
+                                  final account = _invoiceBankAccounts[index];
+                                  return _buildBankAccountTile(
+                                    index,
+                                    account,
+                                    onChanged: () => setSheetState(() {}),
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildBankAccountTile(
+    int index,
+    Map<String, String> account, {
+    VoidCallback? onChanged,
+  }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
@@ -205,7 +299,10 @@ class _BusinessInvoiceSettingsScreenState
             ),
           ),
           IconButton(
-            onPressed: () => _showBankAccountDialog(index: index),
+            onPressed: () async {
+              await _showBankAccountDialog(index: index);
+              onChanged?.call();
+            },
             icon: const Icon(Icons.edit_outlined),
             color: AppColors.lightPrimary,
             tooltip: 'Editar cuenta',
@@ -213,6 +310,7 @@ class _BusinessInvoiceSettingsScreenState
           IconButton(
             onPressed: () {
               setState(() => _invoiceBankAccounts.removeAt(index));
+              onChanged?.call();
             },
             icon: const Icon(Icons.delete_outline),
             color: Colors.redAccent,
@@ -223,106 +321,171 @@ class _BusinessInvoiceSettingsScreenState
     );
   }
 
+  Widget _buildHeaderColorPicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Color de encabezado',
+          style: TextStyle(fontSize: 16, color: AppColors.lightTextSecondary),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: headerColorOptions.map((option) {
+            final colorValue = option.color.toARGB32();
+            final selected = _invoiceHeaderColor == colorValue;
+
+            return Tooltip(
+              message: option.label,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(99),
+                onTap: () => setState(() => _invoiceHeaderColor = colorValue),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: option.color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: selected
+                          ? AppColors.lightPrimary
+                          : Colors.grey.shade300,
+                      width: selected ? 3 : 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: selected
+                      ? const Icon(
+                          Icons.check_rounded,
+                          color: AppColors.lightPrimary,
+                          size: 22,
+                        )
+                      : null,
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Configuración factura')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.only(bottom: 12),
-                      child: Text(
-                        'El nombre, dirección y teléfono del negocio se editan desde la pantalla de mantenimiento.',
-                        style: TextStyle(fontSize: 14, color: Colors.black54),
+          : GestureDetector(
+              onTap: () => FocusScope.of(context).unfocus(),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 12),
+                        child: Text(
+                          'El nombre, dirección y teléfono del negocio se editan desde la pantalla de mantenimiento.',
+                          style: TextStyle(fontSize: 14, color: Colors.black54),
+                        ),
                       ),
-                    ),
-                    TextFormField(
-                      controller: _businessTaxIdController,
-                      decoration: const InputDecoration(labelText: 'NIT / RUC'),
-                    ),
-                    const SizedBox(height: 10),
-                    TextFormField(
-                      controller: _invoicePrefixController,
-                      decoration: const InputDecoration(
-                        labelText: 'Prefijo de factura',
+                      TextFormField(
+                        controller: _businessTaxIdController,
+                        decoration: const InputDecoration(
+                          labelText: 'NIT / RUC',
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    SwitchListTile(
-                      value: _autoPrint,
-                      title: const Text('Imprimir facturas automáticamente'),
-                      subtitle: const Text(
-                        'Al cerrar una venta, envía la factura a la impresora por defecto.',
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: _invoicePrefixController,
+                        decoration: const InputDecoration(
+                          labelText: 'Prefijo de factura',
+                        ),
                       ),
-                      onChanged: (value) => setState(() => _autoPrint = value),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        const Expanded(
-                          child: Text(
-                            'Cuentas para mostrar en factura',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: AppColors.lightTextSecondary,
+                      const SizedBox(height: 16),
+                      // SwitchListTile(
+                      //   value: _autoPrint,
+                      //   title: const Text('Imprimir facturas automáticamente'),
+                      //   subtitle: const Text(
+                      //     'Al cerrar una venta, envía la factura a la impresora por defecto.',
+                      //   ),
+                      //   onChanged: (value) => setState(() => _autoPrint = value),
+                      // ),
+                      const SizedBox(height: 16),
+                      _buildHeaderColorPicker(),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Cuentas para mostrar en factura',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: AppColors.lightTextSecondary,
+                              ),
                             ),
                           ),
+                          IconButton(
+                            onPressed: _showBankAccountsBottomSheet,
+                            icon: const Icon(Icons.account_balance_outlined),
+                            color: AppColors.lightPrimary,
+                            tooltip: 'Ver cuentas bancarias',
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      if (_invoiceBankAccounts.isEmpty)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            'Agrega hasta 3 cuentas para mostrarlas en las facturas PDF.',
+                            style: TextStyle(color: Colors.black54),
+                          ),
+                        )
+                      else
+                        Column(
+                          children: _invoiceBankAccounts
+                              .asMap()
+                              .entries
+                              .map(
+                                (entry) => _buildBankAccountTile(
+                                  entry.key,
+                                  entry.value,
+                                ),
+                              )
+                              .toList(),
                         ),
-                        IconButton(
-                          onPressed: _invoiceBankAccounts.length >= 3
-                              ? null
-                              : () => _showBankAccountDialog(),
-                          icon: const Icon(Icons.add_circle_outline),
-                          color: AppColors.lightPrimary,
-                          tooltip: 'Agregar cuenta bancaria',
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    if (_invoiceBankAccounts.isEmpty)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(12),
+                      const SizedBox(height: 20),
+                      FilledButton(
+                        onPressed: _save,
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 48),
+                          backgroundColor: AppColors.lightPrimary,
                         ),
                         child: const Text(
-                          'Agrega hasta 3 cuentas para mostrarlas en las facturas PDF.',
-                          style: TextStyle(color: Colors.black54),
+                          'Guardar configuración',
+                          style: TextStyle(color: AppColors.lightSurface),
                         ),
-                      )
-                    else
-                      Column(
-                        children: _invoiceBankAccounts
-                            .asMap()
-                            .entries
-                            .map(
-                              (entry) =>
-                                  _buildBankAccountTile(entry.key, entry.value),
-                            )
-                            .toList(),
                       ),
-                    const SizedBox(height: 20),
-                    FilledButton(
-                      onPressed: _save,
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 48),
-                        backgroundColor: AppColors.lightPrimary,
-                      ),
-                      child: const Text(
-                        'Guardar configuración',
-                        style: TextStyle(color: AppColors.lightSurface),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

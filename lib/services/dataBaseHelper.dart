@@ -20,7 +20,7 @@ class DatabaseHelper {
     String path = join(documentsDirectory.path, _databaseName);
     return await openDatabase(
       path,
-      version: 4,
+      version: 6,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -66,7 +66,19 @@ class DatabaseHelper {
     logo_path TEXT,
     invoice_prefix TEXT,
     auto_print INTEGER DEFAULT 0,
-    bank_accounts TEXT
+    bank_accounts TEXT,
+    invoice_header_color INTEGER
+  )
+  ''');
+
+    await db.execute('''
+  CREATE TABLE sale_records(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER,
+    product_name TEXT NOT NULL,
+    sold_at TEXT NOT NULL,
+    unit_price INTEGER NOT NULL,
+    quantity INTEGER NOT NULL
   )
   ''');
   }
@@ -102,6 +114,28 @@ class DatabaseHelper {
         "UPDATE business_settings SET bank_accounts = '[]' WHERE bank_accounts IS NULL",
       );
     }
+
+    if (oldVersion < 5) {
+      await db.execute('''
+      CREATE TABLE IF NOT EXISTS sale_records(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        product_id INTEGER,
+        product_name TEXT NOT NULL,
+        sold_at TEXT NOT NULL,
+        unit_price INTEGER NOT NULL,
+        quantity INTEGER NOT NULL
+      )
+      ''');
+    }
+
+    if (oldVersion < 6) {
+      await db.execute(
+        'ALTER TABLE business_settings ADD COLUMN invoice_header_color INTEGER',
+      );
+      await db.execute(
+        'UPDATE business_settings SET invoice_header_color = 4285261295 WHERE invoice_header_color IS NULL',
+      );
+    }
   }
 
   Future<Map<String, dynamic>> getBusinessSettings() async {
@@ -124,6 +158,7 @@ class DatabaseHelper {
       'invoice_prefix': current['invoice_prefix'] ?? 'INV',
       'auto_print': current['auto_print'] ?? 0,
       'bank_accounts': current['bank_accounts'] ?? '[]',
+      'invoice_header_color': current['invoice_header_color'] ?? 4285261295,
       ...settings,
     };
     await db.insert(

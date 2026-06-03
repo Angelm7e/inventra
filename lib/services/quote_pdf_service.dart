@@ -10,9 +10,18 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 class QuotePdfService {
+  static const int _defaultInvoiceHeaderColor = 0xFF6BD5EF;
+  static const String _defaultProfileLogoPath = 'assets/defaultProfileIMG.png';
+
   static Future<Uint8List> loadAssetImage(String path) async {
     final ByteData data = await rootBundle.load(path);
     return data.buffer.asUint8List();
+  }
+
+  static int _readHeaderColor(dynamic raw) {
+    if (raw is int) return raw;
+    if (raw is String) return int.tryParse(raw) ?? _defaultInvoiceHeaderColor;
+    return _defaultInvoiceHeaderColor;
   }
 
   static List<Map<String, String>> _parseBankAccounts(dynamic raw) {
@@ -44,34 +53,42 @@ class QuotePdfService {
     return [];
   }
 
+  static Future<Uint8List> _loadLogoBytes(String? logoPath) async {
+    final path = logoPath?.trim();
+    if (path != null && path.isNotEmpty) {
+      final logoFile = File(path);
+      if (logoFile.existsSync()) {
+        return logoFile.readAsBytes();
+      }
+    }
+
+    try {
+      return loadAssetImage(_defaultProfileLogoPath);
+    } catch (_) {
+      return Uint8List(0);
+    }
+  }
+
   static Future<Uint8List> generateQuotePdfBytes(
     List<QuoteItem> items, {
     String? clientName,
+    String documentTitle = 'Cotización',
   }) async {
     final lines = InvoiceLine.fromQuoteItems(items);
 
     final settings = await DatabaseHelper.instance.getBusinessSettings();
     final businessName = settings['name'] as String? ?? 'Mi negocio';
+    final businessTaxId = settings['tax_id'] as String? ?? '';
     final businessAddress = settings['address'] as String? ?? '';
     final businessPhone = settings['phone'] as String? ?? '';
     final logoPath = settings['logo_path'] as String?;
+    final headerColor = _readHeaderColor(settings['invoice_header_color']);
     final bankAccounts = _parseBankAccounts(
       settings['bank_accounts'],
     ).take(3).toList();
 
     final pdf = pw.Document();
-    Uint8List logoBytes;
-    if (logoPath != null && File(logoPath).existsSync()) {
-      logoBytes = await File(logoPath).readAsBytes();
-    } else {
-      try {
-        logoBytes = await loadAssetImage(
-          'assets/branding/defaultProfileIMG.png',
-        );
-      } catch (_) {
-        logoBytes = Uint8List(0);
-      }
-    }
+    final logoBytes = await _loadLogoBytes(logoPath);
 
     final data = lines
         .map(
@@ -100,7 +117,14 @@ class QuotePdfService {
           return pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              _header(logoBytes, businessName, businessAddress, businessPhone),
+              _header(
+                logoBytes,
+                businessName,
+                businessTaxId,
+                businessAddress,
+                businessPhone,
+                documentTitle,
+              ),
               pw.SizedBox(height: 20),
               _clientInfo(name),
               pw.SizedBox(height: 20),
@@ -110,8 +134,8 @@ class QuotePdfService {
                   width: 0,
                 ),
                 headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                headerDecoration: const pw.BoxDecoration(
-                  color: PdfColor.fromInt(0x6BD5EF),
+                headerDecoration: pw.BoxDecoration(
+                  color: PdfColor.fromInt(headerColor & 0x00FFFFFF),
                 ),
                 cellAlignment: pw.Alignment.topLeft,
                 headerAlignment: pw.Alignment.topLeft,
@@ -143,8 +167,10 @@ class QuotePdfService {
   static pw.Widget _header(
     Uint8List logoBytes,
     String businessName,
+    String businessTaxId,
     String businessAddress,
     String businessPhone,
+    String documentTitle,
   ) {
     return pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -163,6 +189,11 @@ class QuotePdfService {
               businessName,
               style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
             ),
+            if (businessTaxId.isNotEmpty)
+              pw.Text(
+                'RNC/NIT: $businessTaxId',
+                style: pw.TextStyle(fontSize: 16, color: PdfColors.grey500),
+              ),
             if (businessAddress.isNotEmpty)
               pw.Text(
                 businessAddress,
@@ -175,7 +206,7 @@ class QuotePdfService {
               ),
           ],
         ),
-        pw.Text('Cotización', style: pw.TextStyle(fontSize: 18)),
+        pw.Text(documentTitle, style: pw.TextStyle(fontSize: 18)),
       ],
     );
   }

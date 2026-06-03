@@ -139,9 +139,6 @@ class _HomeScreenState extends State<HomeScreen> {
               _homeOption(context, 'Configuración', Icons.settings, () {
                 Navigator.pushNamed(context, ProfileScreen.routeName);
               }),
-              _homeOption(context, 'Imprimir factura', Icons.print, () {
-                showPrintInvoice(context);
-              }),
               _homeOption(context, 'Negocio y factura', Icons.receipt_long, () {
                 Navigator.pushNamed(
                   context,

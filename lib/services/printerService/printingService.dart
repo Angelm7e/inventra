@@ -1,6 +1,8 @@
 import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
+import 'package:flutter/foundation.dart';
 import 'package:inventra/models/invoice_line.dart';
+import 'package:inventra/services/dataBaseHelper.dart';
 
 class PrintingService {
   final String ip;
@@ -15,7 +17,7 @@ class PrintingService {
     final result = await printer.connect(ip, port: port);
 
     if (result != PosPrintResult.success) {
-      print("Error conectando: $result");
+      debugPrint("Error conectando: $result");
       return null;
     }
 
@@ -28,7 +30,8 @@ class PrintingService {
     final printer = await _connect();
     if (printer == null) return false;
 
-    _printHeader(printer);
+    final settings = await DatabaseHelper.instance.getBusinessSettings();
+    _printHeader(printer, settings);
     _printBody(printer, lines);
     _printFooter(printer);
 
@@ -38,9 +41,14 @@ class PrintingService {
   }
 
   // Invoice header with business info
-  void _printHeader(NetworkPrinter printer) {
+  void _printHeader(NetworkPrinter printer, Map<String, dynamic> settings) {
+    final businessName = _setting(settings, 'name', fallback: 'Mi negocio');
+    final taxId = _setting(settings, 'tax_id');
+    final address = _setting(settings, 'address');
+    final phone = _setting(settings, 'phone');
+
     printer.text(
-      "MI NEGOCIO SRL",
+      businessName,
       styles: PosStyles(
         align: PosAlign.center,
         bold: true,
@@ -49,13 +57,26 @@ class PrintingService {
       ),
     );
 
-    printer.text("RNC: 123456789", styles: PosStyles(align: PosAlign.center));
-    printer.text(
-      "Tel: 809-000-0000",
-      styles: PosStyles(align: PosAlign.center),
-    );
+    if (taxId.isNotEmpty) {
+      printer.text("RNC: $taxId", styles: PosStyles(align: PosAlign.center));
+    }
+    if (address.isNotEmpty) {
+      printer.text(address, styles: PosStyles(align: PosAlign.center));
+    }
+    if (phone.isNotEmpty) {
+      printer.text("Tel: $phone", styles: PosStyles(align: PosAlign.center));
+    }
 
     printer.hr();
+  }
+
+  String _setting(
+    Map<String, dynamic> settings,
+    String key, {
+    String fallback = '',
+  }) {
+    final value = settings[key]?.toString().trim() ?? '';
+    return value.isEmpty ? fallback : value;
   }
 
   // All of this will be dynamic base on the items and the bussines confi
@@ -64,24 +85,48 @@ class PrintingService {
   void _printBody(NetworkPrinter printer, List<InvoiceLine> lines) {
     double total = 0;
 
+    printer.row([
+      PosColumn(text: 'Producto', width: 5, styles: PosStyles(bold: true)),
+      PosColumn(
+        text: 'Precio',
+        width: 2,
+        styles: PosStyles(align: PosAlign.right, bold: true),
+      ),
+      PosColumn(
+        text: 'Cant',
+        width: 2,
+        styles: PosStyles(align: PosAlign.right, bold: true),
+      ),
+      PosColumn(
+        text: 'Total',
+        width: 3,
+        styles: PosStyles(align: PosAlign.right, bold: true),
+      ),
+    ]);
+
     for (final line in lines) {
       final subtotal = line.lineSubtotal.toDouble();
       total += subtotal;
 
-      final name = line.productName.length > 24
-          ? '${line.productName.substring(0, 21)}...'
+      final name = line.productName.length > 20
+          ? '${line.productName.substring(0, 17)}...'
           : line.productName;
 
       printer.row([
-        PosColumn(text: name, width: 6),
+        PosColumn(text: name, width: 5),
+        PosColumn(
+          text: _money(line.unitPrice),
+          width: 2,
+          styles: PosStyles(align: PosAlign.right),
+        ),
         PosColumn(
           text: 'x${line.quantity}',
           width: 2,
           styles: PosStyles(align: PosAlign.right),
         ),
         PosColumn(
-          text: subtotal.toStringAsFixed(2),
-          width: 4,
+          text: _money(subtotal),
+          width: 3,
           styles: PosStyles(align: PosAlign.right),
         ),
       ]);
@@ -92,12 +137,14 @@ class PrintingService {
     printer.row([
       PosColumn(text: 'TOTAL', width: 6, styles: PosStyles(bold: true)),
       PosColumn(
-        text: total.toStringAsFixed(2),
+        text: _money(total),
         width: 6,
         styles: PosStyles(align: PosAlign.right, bold: true),
       ),
     ]);
   }
+
+  String _money(num value) => value.toStringAsFixed(2);
 
   // Invoice footer with thank you message and date/time
   void _printFooter(NetworkPrinter printer) {
@@ -109,7 +156,7 @@ class PrintingService {
     );
 
     printer.text(
-      DateTime.now().toString(),
+      "Fecha: ${DateTime.now().toString().split(' ')[0]}",
       styles: PosStyles(align: PosAlign.center),
     );
   }

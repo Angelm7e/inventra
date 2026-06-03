@@ -298,7 +298,10 @@ class _QuoteScreenState extends State<QuoteScreen> {
               controller: clientNameController,
               decoration: const InputDecoration(
                 hintText: 'Nombre del cliente',
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.lightPrimary),
+                ),
+                fillColor: Colors.white,
                 filled: true,
               ),
               textCapitalization: TextCapitalization.words,

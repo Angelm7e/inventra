@@ -11,16 +11,17 @@ import 'package:inventra/provider/productProvider.dart';
 import 'package:inventra/screens/catalog/catalogScreen.dart';
 import 'package:inventra/screens/catalog/catalog_cart_target.dart';
 import 'package:inventra/screens/profile/printers/addPrinterScreen.dart';
+import 'package:inventra/services/dataBaseHelper.dart';
 import 'package:inventra/services/printerService/printingService.dart';
 import 'package:inventra/services/productService.dart';
 import 'package:inventra/services/quote_pdf_service.dart';
+import 'package:inventra/services/sale_record_service.dart';
 import 'package:inventra/utils/colors.dart';
 import 'package:inventra/utils/number_formatter.dart';
 import 'package:inventra/widgets/bottomNavBar.dart';
 import 'package:inventra/widgets/drawer.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:cross_file/cross_file.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:provider/provider.dart';
 
@@ -312,8 +313,11 @@ class _BillingScreenState extends State<BillingScreen> {
             TextField(
               controller: clientNameController,
               decoration: const InputDecoration(
+                fillColor: Colors.white,
                 hintText: 'Nombre del cliente',
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderSide: BorderSide(color: AppColors.lightPrimary),
+                ),
                 filled: true,
               ),
               textCapitalization: TextCapitalization.words,
@@ -430,6 +434,41 @@ class _BillingScreenState extends State<BillingScreen> {
     return null;
   }
 
+  Future<String?> _registerSaleRecords(List<QuoteItem> items) async {
+    try {
+      await SaleRecordService().addSaleRecordsFromItems(items);
+      return null;
+    } catch (e) {
+      return 'No se pudo registrar la venta: $e';
+    }
+  }
+
+  Widget _buildBottomSheetHeader(BuildContext context) {
+    return Row(
+      children: [
+        const SizedBox(width: 48),
+        Expanded(
+          child: Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade400,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ),
+        IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.close_rounded),
+          color: AppColors.lightTextSecondary,
+          tooltip: 'Cerrar',
+        ),
+      ],
+    );
+  }
+
   void _showPdfActionsSheet(BuildContext context, String clientName) {
     showModalBottomSheet(
       context: context,
@@ -448,15 +487,8 @@ class _BillingScreenState extends State<BillingScreen> {
             ),
             child: Column(
               children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade400,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
+                _buildBottomSheetHeader(context),
+                const SizedBox(height: 12),
                 const Text(
                   'Factura PDF',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -493,6 +525,7 @@ class _BillingScreenState extends State<BillingScreen> {
                       final bytes = await QuotePdfService.generateQuotePdfBytes(
                         items,
                         clientName: clientName,
+                        documentTitle: 'Factura',
                       );
                       await _savePdfToDownloads(bytes);
                       if (!context.mounted) return;
@@ -513,13 +546,18 @@ class _BillingScreenState extends State<BillingScreen> {
                           ),
                         );
                       } else {
+                        final saleErr = await _registerSaleRecords(items);
+                        if (!context.mounted) return;
                         context.read<BillingProvider>().clearBilling();
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                             content: Text(
-                              'Factura guardada e inventario actualizado',
+                              saleErr ??
+                                  'Factura guardada, inventario actualizado y venta registrada',
                             ),
-                            backgroundColor: AppColors.lightPrimary,
+                            backgroundColor: saleErr == null
+                                ? AppColors.lightPrimary
+                                : Colors.orange.shade900,
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -568,6 +606,7 @@ class _BillingScreenState extends State<BillingScreen> {
                       final bytes = await QuotePdfService.generateQuotePdfBytes(
                         items,
                         clientName: clientName,
+                        documentTitle: 'Factura',
                       );
                       await _sharePdf(bytes);
                       clientNameController.clear();
@@ -589,13 +628,18 @@ class _BillingScreenState extends State<BillingScreen> {
                           ),
                         );
                       } else {
+                        final saleErr = await _registerSaleRecords(items);
+                        if (!context.mounted) return;
                         context.read<BillingProvider>().clearBilling();
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
+                          SnackBar(
                             content: Text(
-                              'Factura enviada e inventario actualizado',
+                              saleErr ??
+                                  'Factura enviada, inventario actualizado y venta registrada',
                             ),
-                            backgroundColor: AppColors.lightPrimary,
+                            backgroundColor: saleErr == null
+                                ? AppColors.lightPrimary
+                                : Colors.orange.shade900,
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
@@ -624,26 +668,53 @@ class _BillingScreenState extends State<BillingScreen> {
 
   Future<void> _sharePdf(List<int> bytes) async {
     final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/dulce_euphoria_invoice.pdf');
+    final businessName = await _businessNameForFile();
+    final file = File('${dir.path}/${businessName}_factura.pdf');
     await file.writeAsBytes(bytes);
     await Share.shareXFiles([
       XFile(file.path),
-    ], text: 'Dulce Euphoria - Factura');
+    ], text: '$businessName - Factura');
   }
 
   Future<void> _savePdfToDownloads(List<int> bytes) async {
     if (Platform.isAndroid) {
-      final status = await Permission.storage.request();
-      if (!status.isGranted)
-        throw Exception('Permiso de almacenamiento denegado');
+      await _ensureDownloadsWritePermission();
     }
     final directory = Platform.isAndroid
         ? Directory('/storage/emulated/0/Download')
         : await getApplicationDocumentsDirectory();
+    if (!await directory.exists()) {
+      await directory.create(recursive: true);
+    }
+    final businessName = await _businessNameForFile();
     final file = File(
-      '${directory.path}/dulce_euphoria_invoice_${DateTime.now().millisecondsSinceEpoch}.pdf',
+      '${directory.path}/${businessName}_factura_${DateTime.now().millisecondsSinceEpoch}.pdf',
     );
     await file.writeAsBytes(bytes);
+  }
+
+  Future<void> _ensureDownloadsWritePermission() async {
+    final storageStatus = await Permission.storage.request();
+    if (storageStatus.isGranted) return;
+
+    final manageStatus = await Permission.manageExternalStorage.request();
+    if (manageStatus.isGranted) return;
+
+    throw Exception(
+      'Permiso de almacenamiento denegado. Activa el permiso de archivos para guardar en Descargas.',
+    );
+  }
+
+  Future<String> _businessNameForFile() async {
+    final settings = await DatabaseHelper.instance.getBusinessSettings();
+    final rawName = settings['name']?.toString().trim() ?? '';
+    final name = rawName.isEmpty ? 'mi_negocio' : rawName;
+    final safeName = name
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
+        .replaceAll(RegExp(r'_+'), '_')
+        .replaceAll(RegExp(r'^_|_$'), '');
+    return safeName.isEmpty ? 'mi_negocio' : safeName;
   }
 
   Future<void> _printOnPrinter(
@@ -652,13 +723,26 @@ class _BillingScreenState extends State<BillingScreen> {
   ) async {
     final messenger = ScaffoldMessenger.of(scaffoldContext);
 
-    final lines = InvoiceLine.fromQuoteItems(
+    final items = List<QuoteItem>.from(
       scaffoldContext.read<BillingProvider>().billingItems,
     );
+    final lines = InvoiceLine.fromQuoteItems(items);
     if (lines.isEmpty) {
       messenger.showSnackBar(
         const SnackBar(
           content: Text('Agrega productos a la factura antes de imprimir.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final stockErr = await _validateBillingStock(items);
+    if (stockErr != null) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(stockErr),
+          backgroundColor: Colors.orange.shade900,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -713,13 +797,33 @@ class _BillingScreenState extends State<BillingScreen> {
         );
         return;
       }
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Impresión enviada a ${printer.name}.'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.lightSuccess,
-        ),
-      );
+      final invErr = await _applyBillingDeduction(scaffoldContext, items);
+      if (!scaffoldContext.mounted) return;
+      if (invErr != null) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text('Impresión enviada. Revisa inventario: $invErr'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: Colors.orange.shade900,
+          ),
+        );
+      } else {
+        final saleErr = await _registerSaleRecords(items);
+        if (!scaffoldContext.mounted) return;
+        scaffoldContext.read<BillingProvider>().clearBilling();
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              saleErr ??
+                  'Impresión enviada a ${printer.name}, inventario actualizado y venta registrada.',
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: saleErr == null
+                ? AppColors.lightSuccess
+                : Colors.orange.shade900,
+          ),
+        );
+      }
     } catch (e, st) {
       debugPrint('Error al imprimir: $e\n$st');
       if (!scaffoldContext.mounted) return;
@@ -769,17 +873,7 @@ class _BillingScreenState extends State<BillingScreen> {
                   ),
                   child: Column(
                     children: [
-                      Center(
-                        child: Container(
-                          width: 40,
-                          height: 4,
-                          margin: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[400],
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      ),
+                      _buildBottomSheetHeader(context),
                       const SizedBox(height: 10),
                       const Text(
                         'Impresoras disponibles',
@@ -885,18 +979,7 @@ class _BillingScreenState extends State<BillingScreen> {
                   child: Column(
                     // crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 12),
-
-                      // Indicador draggable
-                      Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[400],
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-
+                      _buildBottomSheetHeader(context),
                       const SizedBox(height: 12),
                       Text(
                         'Tipo de impresora',
@@ -947,6 +1030,7 @@ class _BillingScreenState extends State<BillingScreen> {
   }
 
   void showPrintBillingAction(BuildContext parentContext) {
+    var size = MediaQuery.of(parentContext).size;
     showModalBottomSheet(
       context: parentContext,
       isScrollControlled: true,
@@ -956,9 +1040,9 @@ class _BillingScreenState extends State<BillingScreen> {
         return Stack(
           children: [
             DraggableScrollableSheet(
-              initialChildSize: 0.27,
-              minChildSize: 0.27,
-              maxChildSize: 0.27,
+              initialChildSize: size.height * 0.3 / size.height,
+              minChildSize: size.height * 0.3 / size.height,
+              maxChildSize: size.height * 0.3 / size.height,
               builder: (context, scrollController) {
                 return Container(
                   padding: const EdgeInsets.all(16),
@@ -972,16 +1056,7 @@ class _BillingScreenState extends State<BillingScreen> {
                   child: Column(
                     // crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 12),
-                      // Indicador draggable
-                      Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[400],
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
+                      _buildBottomSheetHeader(context),
                       const SizedBox(height: 12),
                       Text(
                         'Generar factura',
